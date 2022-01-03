@@ -1,9 +1,9 @@
-from panda3d.core import *
-from panda3d.direct import *
-
+from direct.distributed.MsgTypes import MsgId2Names
 from otp_server.realtime import io
 from otp_server.realtime import types
 from otp_server.realtime.notifier import notify
+from panda3d.direct import *
+
 
 class DatabaseInterface(object):
     notify = notify.new_category('NetworkDatabaseInterface')
@@ -36,10 +36,11 @@ class DatabaseInterface(object):
         # Pack up/count valid fields.
         field_packer = DCPacker()
         field_count = 0
-        for k,v in fields.items():
+        for k, v in fields.items():
             field = dclass.get_field_by_name(k)
             if not field:
-                self.notify.error('Creation request for %s object contains an invalid field named %s' % (dclass.get_name(), k))
+                self.notify.error(
+                    'Creation request for %s object contains an invalid field named %s' % (dclass.get_name(), k))
                 return
 
             field_packer.raw_pack_uint32(field.get_number())
@@ -188,10 +189,11 @@ class DatabaseInterface(object):
 
         field_packer = DCPacker()
         field_count = 0
-        for k,v in new_fields.items():
+        for k, v in new_fields.items():
             field = dclass.get_field_by_name(k)
             if not field:
-                self.notify.error('Update for %s(%d) object contains invalid field named %s' % (dclass.get_name(), do_id, k))
+                self.notify.error(
+                    'Update for %s(%d) object contains invalid field named %s' % (dclass.get_name(), do_id, k))
 
             field_packer.raw_pack_uint16(field.get_number())
 
@@ -291,6 +293,7 @@ class DatabaseInterface(object):
         elif message_type == types.DBSERVER_OBJECT_SET_FIELDS_IF_EQUALS_RESP:
             self.handle_update_object_resp(di, True)
 
+
 class DeferredCallback(object):
     """
     A class that represents a pending callback event when called
@@ -298,7 +301,7 @@ class DeferredCallback(object):
     """
 
     def __init__(self, function, *args, **kwargs):
-        assert(callable(function))
+        assert (callable(function))
         self._function = function
         self._args = args
         self._kwargs = kwargs

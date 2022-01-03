@@ -33,6 +33,7 @@ class LoggingNotifier(object):
     def error(self, message):
         self.__logger.error(message)
 
+
 class LoggingNotify(object):
 
     def __init__(self):
@@ -45,5 +46,6 @@ class LoggingNotify(object):
             self.__categories[category] = notifier
 
         return notifier
+
 
 notify = LoggingNotify()

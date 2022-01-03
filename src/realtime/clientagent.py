@@ -6,40 +6,40 @@
 """
 
 import collections
-import time
-import semidbm
-import itertools
-import inspect
 import random
-import threading
+import time
 
+import semidbm
+from direct.distributed.MsgTypes import *
+from direct.distributed.PyDatagram import PyDatagram
+from direct.distributed.PyDatagramIterator import PyDatagramIterator
+from direct.fsm.FSM import FSM
+from direct.showbase.ShowBaseGlobal import config
+from otp_server.game import ZoneUtil
+from otp_server.game import genDNAFileName, extractGroupName
+from otp_server.game.NameGenerator import NameGenerator
+from otp_server.game.OtpDoGlobals import *
+from otp_server.game.dna.DNAParser import loadDNAFileAI, DNAStorage
+from otp_server.realtime import io
+from otp_server.realtime import types
+from otp_server.realtime import util
+from otp_server.realtime.notifier import notify
 from panda3d.core import *
 from panda3d.direct import *
 
-from direct.distributed.PyDatagramIterator import PyDatagramIterator
-from direct.distributed.PyDatagram import PyDatagram
-from direct.distributed.MsgTypes import *
-from direct.fsm.FSM import FSM
+ESSENTIAL_COMPLETE_ZONES = [OTP_ZONE_ID_OLD_QUIET_ZONE,
+                            OTP_ZONE_ID_MANAGEMENT,
+                            OTP_ZONE_ID_DISTRICTS,
+                            OTP_ZONE_ID_DISTRICTS_STATS,
+                            OTP_ZONE_ID_ELEMENTS,
+                            ]
 
-from otp_server.realtime import io
-from otp_server.realtime import types
-from otp_server.realtime.notifier import notify
-from otp_server.realtime import util
+PERMA_ZONES = [OTP_ZONE_ID_OLD_QUIET_ZONE,
+               OTP_ZONE_ID_DISTRICTS,
+               OTP_ZONE_ID_DISTRICTS_STATS,
+               OTP_ZONE_ID_MANAGEMENT,
+               ]
 
-from otp_server.game.OtpDoGlobals import *
-from otp_server.game import ZoneUtil
-from otp_server.game.NameGenerator import NameGenerator
-from otp_server.game import genDNAFileName, extractGroupName
-from otp_server.game.dna.DNAParser import loadDNAFileAI, DNAStorage
-
-ESSENTIAL_COMPLETE_ZONES = [OTP_ZONE_ID_OLD_QUIET_ZONE, 
-    OTP_ZONE_ID_MANAGEMENT, 
-    OTP_ZONE_ID_DISTRICTS,
-    OTP_ZONE_ID_DISTRICTS_STATS,
-    OTP_ZONE_ID_ELEMENTS
-]
-
-PERMA_ZONES = [OTP_ZONE_ID_OLD_QUIET_ZONE, OTP_ZONE_ID_DISTRICTS, OTP_ZONE_ID_DISTRICTS_STATS, OTP_ZONE_ID_MANAGEMENT]
 
 class ClientOperation(FSM):
     notify = notify.new_category('ClientOperation')
@@ -85,6 +85,7 @@ class ClientOperation(FSM):
         if self._callback and success:
             self._callback(*args, **kwargs)
 
+
 class ClientOperationManager(object):
     notify = notify.new_category('ClientOperationManager')
 
@@ -122,7 +123,6 @@ class ClientOperationManager(object):
         if self.has_fsm(client.allocated_channel):
             self.notify.warning('Cannot run operation: %s for channel %d, operation already running: %s!' % (
                 fsm.__name__, client.allocated_channel, self.get_fsm(client.allocated_channel).__class__.__name__))
-
             return None
 
         operation = fsm(self, client, callback, *args, **kwargs)
@@ -133,13 +133,13 @@ class ClientOperationManager(object):
         if not self.has_fsm(client.allocated_channel):
             self.notify.warning('Cannot stop operation for channel %d, unknown operation!' % (
                 client.channel))
-
             return
 
         operation = self.get_fsm(client.allocated_channel)
         operation.demand('Off')
 
         self.remove_fsm(client.allocated_channel)
+
 
 class LoadAccountFSM(ClientOperation):
     notify = notify.new_category('LoadAccountFSM')
@@ -157,14 +157,15 @@ class LoadAccountFSM(ClientOperation):
 
         self._account_id = int(self.manager.dbm[self._play_token])
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            self.__account_loaded,
-            self.manager.network.dc_loader.dclasses_by_name['Account'])
+                                                             types.DBSERVER_ID,
+                                                             self._account_id,
+                                                             self.__account_loaded,
+                                                             self.manager.network.dc_loader.dclasses_by_name['Account'])
 
     def __account_loaded(self, dclass, fields):
         if not dclass and not fields:
-            self.notify.warning('Failed to load account: %d for channel: %d playtoken: %s!' % (self._account_id, self._client.channel, self._play_token))
+            self.notify.warning('Failed to load account: %d for channel: %d playtoken: %s!' % (
+            self._account_id, self._client.channel, self._play_token))
             return
 
         self.request('SetAccount')
@@ -174,28 +175,30 @@ class LoadAccountFSM(ClientOperation):
 
     def enterCreate(self):
         fields = {
-            'DcObjectType': ("Account"),
+            'DcObjectType': "Account",
             'ACCOUNT_AV_SET': ([0] * 6),
             'pirateAvatars': ([0] * 6),
             'HOUSE_ID_SET': ([]),
-            'ESTATE_ID': (0),
+            'ESTATE_ID': 0,
             'ACCOUNT_AV_SET_DEL': ([]),
-            'PLAYED_MINUTES': (""),
-            'PLAYED_MINUTES_PERIOD': (""),
+            'PLAYED_MINUTES': "",
+            'PLAYED_MINUTES_PERIOD': "",
             'CREATED': (time.ctime()),
-            'LAST_LOGIN': ("")
+            'LAST_LOGIN': "",
         }
 
         self.manager.network.database_interface.create_object(self.client.channel,
-            types.DBSERVER_ID,
-            self.manager.network.dc_loader.dclasses_by_name['Account'],
-            fields=fields,
-            callback=self.__account_created)
+                                                              types.DBSERVER_ID,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'Account'],
+                                                              fields=fields,
+                                                              callback=self.__account_created)
 
     def __account_created(self, account_id):
         self._account_id = account_id
         if not self._account_id:
-            self.notify.warning('Failed to create account for channel: %d playtoken: %s!' % (self._client.channel, self._play_token))
+            self.notify.warning(
+                'Failed to create account for channel: %d playtoken: %s!' % (self._client.channel, self._play_token))
             self.cleanup(False)
             return
 
@@ -225,6 +228,7 @@ class LoadAccountFSM(ClientOperation):
 
     def exitSetAccount(self):
         pass
+
 
 class ClientAvatarData(object):
 
@@ -275,6 +279,7 @@ class ClientAvatarData(object):
     def name_index(self, name_index):
         self._name_index = name_index
 
+
 class RetrieveAvatarsFSM(ClientOperation):
     notify = notify.new_category('RetrieveAvatarsFSM')
 
@@ -287,10 +292,10 @@ class RetrieveAvatarsFSM(ClientOperation):
 
     def enterStart(self):
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            self.__account_loaded,
-            self.manager.network.dc_loader.dclasses_by_name['Account'])
+                                                             types.DBSERVER_ID,
+                                                             self._account_id,
+                                                             self.__account_loaded,
+                                                             self.manager.network.dc_loader.dclasses_by_name['Account'])
 
     def exitStart(self):
         pass
@@ -310,10 +315,11 @@ class RetrieveAvatarsFSM(ClientOperation):
                     self.request('SetAvatars')
 
             self.manager.network.database_interface.query_object(self.client.channel,
-                types.DBSERVER_ID,
-                avatar_id,
-                response,
-                self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                                 types.DBSERVER_ID,
+                                                                 avatar_id,
+                                                                 response,
+                                                                 self.manager.network.dc_loader.dclasses_by_name[
+                                                                     'DistributedToon'])
 
         if not self._pending_avatars:
             self.request('SetAvatars')
@@ -323,7 +329,7 @@ class RetrieveAvatarsFSM(ClientOperation):
 
         for avatar_id, fields in self._avatar_fields.items():
             avatar_data = ClientAvatarData(avatar_id, [fields['setName'][0], '', '', ''], fields['setDNAString'][0],
-                fields['setPosIndex'][0], 0)
+                                           fields['setPosIndex'][0], 0)
 
             avatar_list.append(avatar_data)
 
@@ -332,6 +338,7 @@ class RetrieveAvatarsFSM(ClientOperation):
 
     def exitSetAvatars(self):
         pass
+
 
 class CreateAvatarFSM(ClientOperation):
     notify = notify.new_category('CreateAvatarFSM')
@@ -353,17 +360,22 @@ class CreateAvatarFSM(ClientOperation):
         }
 
         self.manager.network.database_interface.create_object(self.client.channel,
-            types.DBSERVER_ID,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            fields=fields,
-            callback=lambda avatar_id: self.__avatar_created(avatar_id, self._index))
+                                                              types.DBSERVER_ID,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              fields=fields,
+                                                              callback=lambda avatar_id: self.__avatar_created(
+                                                                  avatar_id, self._index))
 
     def __avatar_created(self, avatar_id, index):
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            lambda dclass, fields: self.__account_loaded(dclass, fields, avatar_id, index),
-            self.manager.network.dc_loader.dclasses_by_name['Account'])
+                                                             types.DBSERVER_ID,
+                                                             self._account_id,
+                                                             lambda dclass, fields: self.__account_loaded(dclass,
+                                                                                                          fields,
+                                                                                                          avatar_id,
+                                                                                                          index),
+                                                             self.manager.network.dc_loader.dclasses_by_name['Account'])
 
     def __account_loaded(self, dclass, fields, avatar_id, index):
         avatar_list = fields['ACCOUNT_AV_SET'][0]
@@ -374,16 +386,18 @@ class CreateAvatarFSM(ClientOperation):
         }
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            self.manager.network.dc_loader.dclasses_by_name['Account'],
-            new_fields)
+                                                              types.DBSERVER_ID,
+                                                              self._account_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'Account'],
+                                                              new_fields)
 
         # We're all done
         self.cleanup(True, self._echo_context, avatar_id)
 
     def exitStart(self):
         pass
+
 
 class LoadAvatarFSM(ClientOperation):
     notify = notify.new_category('LoadAvatarFSM')
@@ -405,10 +419,11 @@ class LoadAvatarFSM(ClientOperation):
             self.request('Activate')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         pass
@@ -424,7 +439,7 @@ class LoadAvatarFSM(ClientOperation):
 
         datagram = io.NetworkDatagram()
         datagram.add_header(types.STATESERVER_CHANNEL, channel,
-            types.STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER)
+                            types.STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER)
 
         datagram.add_uint32(self._avatar_id)
         datagram.add_uint32(0)
@@ -446,7 +461,7 @@ class LoadAvatarFSM(ClientOperation):
         sorted_fields = collections.OrderedDict(sorted(
             sorted_fields.items()))
 
-        field_packer = DCPacker()
+        field_packer = DCPacker() # TODO
         for field_index, field_args in sorted_fields.items():
             field = self._dc_class.get_field_by_index(field_index)
 
@@ -465,7 +480,7 @@ class LoadAvatarFSM(ClientOperation):
             'setTrophyScore': (self._fields.get('setTrophyScore', 0),),
         }
 
-        field_packer = DCPacker()
+        field_packer = DCPacker() # TODO
         for field_name, field_args in other_fields.items():
             field = self._dc_class.get_field_by_name(field_name)
 
@@ -485,7 +500,7 @@ class LoadAvatarFSM(ClientOperation):
         # grant ownership over the distributed object...
         datagram = io.NetworkDatagram()
         datagram.add_header(self._avatar_id, channel,
-            types.STATESERVER_OBJECT_SET_OWNER_RECV)
+                            types.STATESERVER_OBJECT_SET_OWNER_RECV)
 
         datagram.add_uint64(channel)
         self.manager.network.handle_send_connection_datagram(datagram)
@@ -494,13 +509,13 @@ class LoadAvatarFSM(ClientOperation):
         # client's toon object when they disconnect...
         post_remove = io.NetworkDatagram()
         post_remove.add_header(self._avatar_id, channel,
-            types.STATESERVER_OBJECT_DELETE_RAM)
+                               types.STATESERVER_OBJECT_DELETE_RAM)
 
         post_remove.add_uint32(self._avatar_id)
 
         datagram = io.NetworkDatagram()
         datagram.add_control_header(self.client.allocated_channel,
-            types.CONTROL_ADD_POST_REMOVE)
+                                    types.CONTROL_ADD_POST_REMOVE)
 
         datagram.append_data(post_remove.get_message())
         self.manager.network.handle_send_connection_datagram(datagram)
@@ -510,6 +525,7 @@ class LoadAvatarFSM(ClientOperation):
 
     def exitActivate(self):
         pass
+
 
 class LoadFriendsListFSM(ClientOperation):
     notify = notify.new_category('LoadAvatarFSM')
@@ -534,10 +550,11 @@ class LoadFriendsListFSM(ClientOperation):
             self.request('QueryFriends')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         pass
@@ -559,10 +576,11 @@ class LoadFriendsListFSM(ClientOperation):
                     self.request('LoadFriends')
 
             self.manager.network.database_interface.query_object(self.client.channel,
-                types.DBSERVER_ID,
-                friend_id,
-                queryFriendCallback,
-                self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                                 types.DBSERVER_ID,
+                                                                 friend_id,
+                                                                 queryFriendCallback,
+                                                                 self.manager.network.dc_loader.dclasses_by_name[
+                                                                     'DistributedToon'])
 
     def exitQueryFriends(self):
         pass
@@ -588,7 +606,7 @@ class LoadFriendsListFSM(ClientOperation):
             if friend_online:
                 datagram = io.NetworkDatagram()
                 datagram.add_header(friend_channel, our_channel,
-                    types.CLIENTAGENT_FRIEND_ONLINE)
+                                    types.CLIENTAGENT_FRIEND_ONLINE)
 
                 datagram.add_uint32(self._avatar_id)
                 self.manager.network.handle_send_connection_datagram(datagram)
@@ -597,13 +615,13 @@ class LoadFriendsListFSM(ClientOperation):
             # that we are offline when we disconnect...
             post_remove = io.NetworkDatagram()
             post_remove.add_header(friend_channel, our_channel,
-                types.CLIENTAGENT_FRIEND_OFFLINE)
+                                   types.CLIENTAGENT_FRIEND_OFFLINE)
 
             post_remove.add_uint32(self._avatar_id)
 
             datagram = io.NetworkDatagram()
             datagram.add_control_header(self.client.allocated_channel,
-                types.CONTROL_ADD_POST_REMOVE)
+                                        types.CONTROL_ADD_POST_REMOVE)
 
             datagram.append_data(post_remove.get_message())
             self.manager.network.handle_send_connection_datagram(datagram)
@@ -628,12 +646,13 @@ class LoadFriendsListFSM(ClientOperation):
     def exitLoadFriends(self):
         pass
 
+
 class SetNameFSM(ClientOperation):
     notify = notify.new_category('SetNameFSM')
 
     def __init__(self, manager, client, callback, avatar_id, wish_name):
         self.notify.debug("SetNameFSM.__init__(%s, %s, %s, %s, %s)" % (str(manager), str(client),
-            str(callback), str(avatar_id), str(wish_name)))
+                                                                       str(callback), str(avatar_id), str(wish_name)))
 
         ClientOperation.__init__(self, manager, client, callback)
 
@@ -653,10 +672,11 @@ class SetNameFSM(ClientOperation):
             self.request('SetName')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         self.notify.debug("SetNameFSM.exitQuery()")
@@ -666,22 +686,24 @@ class SetNameFSM(ClientOperation):
 
         # TODO: Parse a check the wish-name for bad names and etc.
         new_fields = {
-             'setName': (self._wish_name,)
+            'setName': (self._wish_name,)
         }
 
-        #self.notify.warning("New fields are \n%s" % (str(self._fields)))
+        # self.notify.warning("New fields are \n%s" % (str(self._fields)))
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            new_fields)
+                                                              types.DBSERVER_ID,
+                                                              self._avatar_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              new_fields)
 
         # We're all done
         self.cleanup(True, self._avatar_id, self._wish_name)
 
     def exitSetName(self):
         self.notify.debug("SetNameFSM.exitSetName()")
+
 
 class GetAvatarDetailsFSM(ClientOperation):
     notify = notify.new_category('GetAvatarDetailsFSM')
@@ -702,10 +724,11 @@ class GetAvatarDetailsFSM(ClientOperation):
             self.request('SendDetails')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         pass
@@ -755,6 +778,7 @@ class GetAvatarDetailsFSM(ClientOperation):
     def exitSendDetails(self):
         pass
 
+
 class DeleteAvatarFSM(ClientOperation):
     notify = notify.new_category('DeleteAvatarFSM')
 
@@ -768,10 +792,10 @@ class DeleteAvatarFSM(ClientOperation):
 
     def enterStart(self):
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            self.__account_loaded,
-            self.manager.network.dc_loader.dclasses_by_name['Account'])
+                                                             types.DBSERVER_ID,
+                                                             self._account_id,
+                                                             self.__account_loaded,
+                                                             self.manager.network.dc_loader.dclasses_by_name['Account'])
 
     def exitStart(self):
         pass
@@ -791,10 +815,11 @@ class DeleteAvatarFSM(ClientOperation):
                     self.request('ApplyAvatars')
 
             self.manager.network.database_interface.query_object(self.client.channel,
-                types.DBSERVER_ID,
-                avatar_id,
-                response,
-                self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                                 types.DBSERVER_ID,
+                                                                 avatar_id,
+                                                                 response,
+                                                                 self.manager.network.dc_loader.dclasses_by_name[
+                                                                     'DistributedToon'])
 
         if not self._pending_avatars:
             self.request('ApplyAvatars')
@@ -818,11 +843,12 @@ class DeleteAvatarFSM(ClientOperation):
             self.demand('SetAvatars')
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._account_id,
-            self.manager.network.dc_loader.dclasses_by_name['Account'],
-            new_fields,
-            callback=update_callback)
+                                                              types.DBSERVER_ID,
+                                                              self._account_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'Account'],
+                                                              new_fields,
+                                                              callback=update_callback)
 
         del self.avatar_list
 
@@ -833,7 +859,7 @@ class DeleteAvatarFSM(ClientOperation):
         avatar_list = []
         for avatar_id, fields in self._avatar_fields.items():
             avatar_data = ClientAvatarData(avatar_id, [fields['setName'][0], '', '', ''], fields['setDNAString'][0],
-                fields['setPosIndex'][0], 0)
+                                           fields['setPosIndex'][0], 0)
 
             avatar_list.append(avatar_data)
 
@@ -842,13 +868,15 @@ class DeleteAvatarFSM(ClientOperation):
 
     def exitSetAvatars(self):
         pass
-        
+
+
 class SetAvatarZonesFSM(ClientOperation):
     notify = notify.new_category('SetAvatarZonesFSM')
 
     def __init__(self, manager, client, callback, avatar_id, zone_id):
         self.notify.debug("SetAvatarZonesFSM.__init__(%s, %s, %s, %s, %s)" % (str(manager), str(client),
-            str(callback), str(avatar_id), str(zone_id)))
+                                                                              str(callback), str(avatar_id),
+                                                                              str(zone_id)))
 
         ClientOperation.__init__(self, manager, client, callback)
 
@@ -868,10 +896,11 @@ class SetAvatarZonesFSM(ClientOperation):
             self.request('SetField')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         self.notify.debug("SetAvatarZonesFSM.exitQuery()")
@@ -882,38 +911,41 @@ class SetAvatarZonesFSM(ClientOperation):
         hoodsVisited = self._fields['setHoodsVisited'][0]
         if self._zone_id not in hoodsVisited:
             hoodsVisited.append(self._zone_id)
-            
+
         # For some reason we can't update more than one field at once?
-            
+
         new_fields = {
-             'setHoodsVisited': (hoodsVisited,)
+            'setHoodsVisited': (hoodsVisited,)
         }
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            new_fields)
-            
+                                                              types.DBSERVER_ID,
+                                                              self._avatar_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              new_fields)
+
         new_fields = {
-             'setLastHood': (self._zone_id,)
+            'setLastHood': (self._zone_id,)
         }
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            new_fields)
-            
+                                                              types.DBSERVER_ID,
+                                                              self._avatar_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              new_fields)
+
         new_fields = {
-             'setDefaultZone': (self._zone_id,)
+            'setDefaultZone': (self._zone_id,)
         }
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            new_fields)
+                                                              types.DBSERVER_ID,
+                                                              self._avatar_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              new_fields)
 
         # We're all done
         self.cleanup(True)
@@ -921,12 +953,14 @@ class SetAvatarZonesFSM(ClientOperation):
     def exitSetField(self):
         self.notify.debug("SetAvatarZonesFSM.exitSetField()")
 
+
 class SetNamePatternFSM(ClientOperation):
     notify = notify.new_category('SetNamePatternFSM')
 
     def __init__(self, manager, client, callback, avatar_id, pattern):
         self.notify.debug("SetNamePatternFSM.__init__(%s, %s, %s, %s, %s)" % (str(manager), str(client),
-            str(callback), str(avatar_id), str(pattern)))
+                                                                              str(callback), str(avatar_id),
+                                                                              str(pattern)))
 
         ClientOperation.__init__(self, manager, client, callback)
 
@@ -947,10 +981,11 @@ class SetNamePatternFSM(ClientOperation):
             self.request('SetPatternName')
 
         self.manager.network.database_interface.query_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            response,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'])
+                                                             types.DBSERVER_ID,
+                                                             self._avatar_id,
+                                                             response,
+                                                             self.manager.network.dc_loader.dclasses_by_name[
+                                                                 'DistributedToon'])
 
     def exitStart(self):
         self.notify.debug("SetNamePatternFSM.exitQuery()")
@@ -980,22 +1015,24 @@ class SetNamePatternFSM(ClientOperation):
         del nameGenerator
 
         new_fields = {
-             'setName': (name,)
+            'setName': (name,)
         }
 
-        #self.notify.warning("New fields are \n%s" % (str(self._fields)))
+        # self.notify.warning("New fields are \n%s" % (str(self._fields)))
 
         self.manager.network.database_interface.update_object(self.client.channel,
-            types.DBSERVER_ID,
-            self._avatar_id,
-            self.manager.network.dc_loader.dclasses_by_name['DistributedToon'],
-            new_fields)
+                                                              types.DBSERVER_ID,
+                                                              self._avatar_id,
+                                                              self.manager.network.dc_loader.dclasses_by_name[
+                                                                  'DistributedToon'],
+                                                              new_fields)
 
         # We're all done
         self.cleanup(True, self._avatar_id)
 
     def exitSetPatternName(self):
         self.notify.debug("SetNamePatternFSM.exitSetPatternName()")
+
 
 class ClientAccountManager(ClientOperationManager):
     notify = notify.new_category('ClientAccountManager')
@@ -1004,7 +1041,7 @@ class ClientAccountManager(ClientOperationManager):
         ClientOperationManager.__init__(self, *args, **kwargs)
 
         self._dbm = semidbm.open(config.GetString('clientagent-dbm-filename', 'databases/database.dbm'),
-            config.GetString('clientagent-dbm-mode', 'c'))
+                                 config.GetString('clientagent-dbm-mode', 'c'))
 
     @property
     def dbm(self):
@@ -1017,6 +1054,7 @@ class ClientAccountManager(ClientOperationManager):
             return
 
         operation.request('Start')
+
 
 class InterestManager(object):
 
@@ -1045,59 +1083,60 @@ class InterestManager(object):
 
     def clear(self):
         self._interest_zones = []
-        
+
     def add_interest_object(self, i):
         self._interest_objects.append(i)
-        
+
     def has_interest_object(self, i):
         return i in self._interest_objects
-        
-    def has_interest_object_id(self, _id, _obj = False):
+
+    def has_interest_object_id(self, _id, _obj=False):
         for interest in self._interest_objects:
             if interest.getId() == _id:
                 if _obj:
                     return interest
-                    
+
                 return True
-                
+
         return False
-        
+
     def has_interest_object_parent(self, parentId):
         for interest in self._interest_objects:
             if interest.getParent() == parentId:
                 return True
-                
+
         return False
-        
+
     def has_interest_object_zone(self, zoneId):
         for interest in self._interest_objects:
             if interest.hasZone(zoneId) or interest.hasView(zoneId):
                 return True
-                
+
         return False
-        
-    def has_interest_object_parent_and_zone(self, parentId, zoneId, getObj = False, includeViews = False):
+
+    def has_interest_object_parent_and_zone(self, parentId, zoneId, getObj=False, includeViews=False):
         for interest in self._interest_objects:
-            if interest.getParent() == parentId and (interest.hasZone(zoneId) or (includeViews and interest.hasView(zoneId))):
+            if interest.getParent() == parentId and (
+                    interest.hasZone(zoneId) or (includeViews and interest.hasView(zoneId))):
                 if getObj:
                     return interest
                 return True
-                
+
         return False
-        
+
     def get_interest_object_by_id(self, _id):
         return self.has_interest_object_id(_id, True)
-        
+
     def remove_interest_object(self, i):
         self._interest_objects.remove(i)
-        
+
     def get_interest_objects(self):
         return self._interest_objects
-        
+
+
 class InterestOperation:
-    def __init__(self, client, timeout, Id, context, 
-            parent, zones, caller):
-            
+    def __init__(self, client, timeout, Id, context,
+                 parent, zones, caller):
         self.client = client
         self.timeout = timeout
         self.id = Id
@@ -1105,95 +1144,99 @@ class InterestOperation:
         self.parent = parent
         self.zones = zones
         self.caller = caller
-        
+
+
 class ZoneList:
-    
+
     def __init__(self):
         self.zones = []
-    
+
     def addZone(self, zoneId):
         self.zones.append(zoneId)
-        
+
     def removeZone(self, zoneId):
         self.zones.remove(zoneId)
-        
+
     def getZones(self):
         return self.zones
-        
+
     def hasZone(self, zoneId):
         return zoneId in self.zones
-        
+
+
 class Interest:
-    
+
     def __init__(self):
         self.zones = ZoneList()
         self.vis_zones = set()
         self.id = -1
         self.context = -1
         self.parent = -1
-    
+
     def setId(self, _id):
         self.id = _id
-        
+
     def getId(self):
         return self.id
-        
+
     def setContext(self, _context):
         self.context = _context
-        
+
     def getContext(self):
         return self.context
-        
+
     def setParent(self, _parent):
         self.parent = _parent
-        
+
     def getParent(self):
         return self.parent
-        
+
     def addZone(self, zone):
         self.zones.addZone(zone)
-        
+
     def removeZone(self, zone):
         self.zones.removeZone(zone)
-        
+
     def getZones(self):
         return self.zones.getZones()
-        
+
     def hasZone(self, zone):
         return self.zones.hasZone(zone)
-        
+
     def setVisZones(self, zones):
         self.vis_zones = zones
-        
+
     def getVisZones(self):
         return self.vis_zones
-        
+
     def hasView(self, zone):
         return zone in self.vis_zones
-        
+
+
 class VisibleObject:
     def __init__(self):
         self.parent = -1
         self.zone = -1
         self.id = -1
-    
+
     def setParent(self, parent):
         self.parent = parent
-        
+
     def getParent(self):
         return self.parent
-        
+
     def setZone(self, zone):
         self.zone = zone
-        
+
     def getZone(self):
         return self.zone
-        
+
     def setId(self, _id):
         self.id = id
-        
+
     def getId(self):
         return self.id
+
 
 class Client(io.NetworkHandler):
     notify = notify.new_category('Client')
@@ -1210,7 +1253,7 @@ class Client(io.NetworkHandler):
         self._seen_objects = {}
         self._owned_objects = []
         self._pending_objects = []
-        
+
         # 2010
         self._visibile_objects = []
         self._seen_objects_2 = []
@@ -1218,14 +1261,15 @@ class Client(io.NetworkHandler):
         self._context_id = 0
         self._context_to_callback = {}
         self._interest_delete_queue = []
-        
-        #! This is meant to be a temporary hacky way to get streets working properly!
-        self._street_zones = (2100, 2200, 2300, 1100, 1200, 1300, 3100, 3200, 3300, 4100, 4200, 4300, 5100, 5200, 5300, 9100, 9200)
+
+        # ! This is meant to be a temporary hacky way to get streets working properly!
+        self._street_zones = (
+        2100, 2200, 2300, 1100, 1200, 1300, 3100, 3200, 3300, 4100, 4200, 4300, 5100, 5200, 5300, 9100, 9200)
         self._forced_zones = {}
-        
+
         self._dna_stores = {}
         self._deleted_object_history = []
-        
+
         self.idtest = random.random()
 
     @property
@@ -1235,12 +1279,12 @@ class Client(io.NetworkHandler):
     @authenticated.setter
     def authenticated(self, authenticated):
         self._authenticated = authenticated
-        
+
     def get_next_context(self):
         self._context_id += 1
         return self._context_id
 
-    def has_seen_object(self, do_id, erase = False):
+    def has_seen_object(self, do_id, erase=False):
         for zone_id, seen_objects in list(self._seen_objects.items()):
             if do_id in seen_objects:
                 if erase:
@@ -1267,7 +1311,8 @@ class Client(io.NetworkHandler):
         try:
             message_type = di.get_uint16()
         except:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM, 'Received truncated datagram from channel: %d!' % (self._channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
+                                        'Received truncated datagram from channel: %d!' % (self._channel))
             return
 
         if message_type == types.CLIENT_HEARTBEAT:
@@ -1276,14 +1321,16 @@ class Client(io.NetworkHandler):
             self.handle_login(di)
         elif message_type == types.CLIENT_LOGIN_2:
             self.handle_login_2(di)
-        elif message_type == 125: #125 == CLIENT_LOGIN_TOONTOWN
+        elif message_type == 125:  # 125 == CLIENT_LOGIN_TOONTOWN
             self.handle_login_toontown(di)
         elif message_type == types.CLIENT_DISCONNECT:
             self.handle_disconnect()
         elif self._authenticated:
             self.handle_authenticated_datagram(message_type, di)
         else:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_ANONYMOUS_VIOLATION, 'Cannot send datagram with message type: %d, channel: %d not yet authenticated!' % (message_type, self.channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_ANONYMOUS_VIOLATION,
+                                        'Cannot send datagram with message type: %d, channel: %d not yet authenticated!' % (
+                                        message_type, self.channel))
 
     def handle_authenticated_datagram(self, message_type, di):
         if message_type == types.CLIENT_GET_SHARD_LIST:
@@ -1319,7 +1366,8 @@ class Client(io.NetworkHandler):
         elif message_type == types.CLIENT_OBJECT_LOCATION:
             self.handle_client_object_location(di)
         else:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_MSGTYPE, 'Unknown datagram: %d from channel: %d!' % (message_type, self.channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_MSGTYPE,
+                                        'Unknown datagram: %d from channel: %d!' % (message_type, self.channel))
             return
 
     def handle_internal_datagram(self, message_type, sender, di):
@@ -1353,7 +1401,7 @@ class Client(io.NetworkHandler):
             self.handle_object_update_field_resp(sender, di)
         else:
             self.network.database_interface.handle_datagram(message_type, di)
-            
+
     def handle_object_changing_location(self, di):
         do_id = di.get_uint32()
         new_parent_id = di.get_uint32()
@@ -1363,7 +1411,7 @@ class Client(io.NetworkHandler):
                 self._seen_objects[new_zone_id] = []
             print("ack change for %d to %d" % (do_id, new_zone_id))
             self._seen_objects[new_zone_id].append(do_id)
-            
+
     def handle_client_object_location(self, di):
         try:
             doId = di.get_uint32()
@@ -1371,45 +1419,46 @@ class Client(io.NetworkHandler):
             zoneId = di.get_uint32()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
             return
-           
+
         context = self.get_next_context()
-        
+
         _deferred_callback = util.DeferredCallback(self.handle_set_loc_shard_callback, zoneId)
         self._context_to_callback[context] = _deferred_callback
-        
+
         datagram = io.NetworkDatagram()
         datagram.add_header(doId, self.channel,
-            types.STATESERVER_OBJECT_SET_AI)
-        
+                            types.STATESERVER_OBJECT_SET_AI)
+
         datagram.add_uint64(parentId - 1)
         datagram.add_uint32(context)
         datagram.add_uint32(zoneId)
         self.network.handle_send_connection_datagram(datagram)
 
-    def handle_set_loc_shard_callback(self, do_id, old_parent_id, old_zone_id, new_parent_id, new_zone_id, actualZone = None):
+    def handle_set_loc_shard_callback(self, do_id, old_parent_id, old_zone_id, new_parent_id, new_zone_id,
+                                      actualZone=None):
         return
-            
+
     def handle_remove_interest(self, di):
         try:
             interestId = di.getUint16()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
             return
-            
+
         old_vis_zones = set()
         kill_zones = []
         if self._interest_manager.has_interest_object_id(interestId):
             interest = self._interest_manager.get_interest_object_by_id(interestId)
-                            
+
             for zone in interest.getZones():
                 if len(self.lookup_interest(interest.getParent(), zone)) == 1:
                     kill_zones.append(zone)
-                        
+
                     old_zone_id = zone
                     old_zone_in_street_branch = self.get_in_street_branch(old_zone_id)
                     if old_zone_in_street_branch:
@@ -1419,20 +1468,20 @@ class Client(io.NetworkHandler):
                             for zone_id in old_vis_zones:
                                 kill_zones.append(zone_id)
                         del self._dna_stores[old_branch_zone_id]
-            
+
             self.close_zones(kill_zones, interest.getParent())
             self.handle_interest_done(interest.getId(), interest.getContext())
             self._interest_manager.remove_interest_object(interest)
         else:
-            self.notify.info("Delete for unknown interest id %d" %interestId)
-            
+            self.notify.info("Delete for unknown interest id %d" % interestId)
+
     def get_in_street_branch(self, zone_id):
         if not ZoneUtil.isPlayground(zone_id):
             where = ZoneUtil.getWhereName(zone_id, True)
             return where == 'street'
 
         return False
-        
+
     def get_vis_branch_zones(self, zone_id):
         branch_zone_id = ZoneUtil.getBranchZone(zone_id)
         dnaStore = self._dna_stores.get(branch_zone_id)
@@ -1456,14 +1505,14 @@ class Client(io.NetworkHandler):
             zoneVisDict[visZoneId] = visibles
 
         return zoneVisDict[zone_id]
-            
-    def handle_add_interest(self, di): 
+
+    def handle_add_interest(self, di):
         try:
             interest = self.build_interest(di)
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
             return
         newZones = []
         for zone in interest.getZones():
@@ -1474,7 +1523,7 @@ class Client(io.NetworkHandler):
                     # This interest was already created and letting it go through empty would erase previous interest zones
                     self.handle_interest_done(interest.getId(), interest.getContext())
                     return
-                
+
         new_vis_zones = set()
         for new_zone_id in newZones:
             new_zone_in_street_branch = self.get_in_street_branch(new_zone_id)
@@ -1482,74 +1531,76 @@ class Client(io.NetworkHandler):
                 new_branch_zone_id = ZoneUtil.getBranchZone(new_zone_id)
                 if new_zone_id % 100 != 0:
                     new_vis_zones.update(self.get_vis_branch_zones(new_zone_id))
-        
+
         interest.setVisZones(new_vis_zones)
-             
+
         killedZones = []
         old_vis_zones = set()
         if self._interest_manager.has_interest_object_id(interest.getId()):
             previousInterest = self._interest_manager.get_interest_object_by_id(interest.getId())
-            
+
             for zone in previousInterest.getZones():
                 if len(self.lookup_interest(previousInterest.getParent(), zone)) > 1:
                     continue
-                
+
                 if interest.getParent() != previousInterest.getParent() or not interest.hasZone(zone):
                     killedZones.append(zone)
-                
+
             old_interest_vis_zones = previousInterest.getVisZones()
-            
+
             interest_vis_zones = interest.getVisZones()
             for zone_id in old_interest_vis_zones.difference(interest_vis_zones):
                 killedZones.append(zone_id)
-                
+
             for zone_id in interest_vis_zones.difference(old_interest_vis_zones):
-                if zone_id not in newZones and not self._interest_manager.has_interest_object_parent_and_zone(interest.getParent(), zone_id):
+                if zone_id not in newZones and not self._interest_manager.has_interest_object_parent_and_zone(
+                        interest.getParent(), zone_id):
                     newZones.append(zone_id)
-                    
+
             for k in killedZones:
                 if k in interest.getVisZones() or k in newZones:
                     killedZones.remove(k)
-                    
+
             self.close_zones(killedZones, interest.getParent())
-            self._interest_manager.remove_interest_object(self._interest_manager.has_interest_object_id(interest.getId(), True))
+            self._interest_manager.remove_interest_object(
+                self._interest_manager.has_interest_object_id(interest.getId(), True))
         else:
             newZones.extend(list(interest.getVisZones()))
-        
+
         finalZones = []
         for zone in newZones:
             if not self._interest_manager.has_interest_object_parent_and_zone(interest.getParent(), zone, False, True):
                 finalZones.append(zone)
-                
+
         print("Client requested zones are: ", finalZones)
         print("Client visible zones are: ", interest.getVisZones())
         print("===")
-        
+
         self._interest_manager.add_interest_object(interest)
-            
+
         op = InterestOperation(self, 500, interest.getId(), interest.getContext(),
-            interest.getParent(), finalZones, self.channel)
+                               interest.getParent(), finalZones, self.channel)
         self._pending_interests[interest.getContext()] = interest
 
         self._deferred_callback = util.DeferredCallback(self.handle_interest_complete_callback, interest.getContext())
 
         datagram = io.NetworkDatagram()
         datagram.add_header(interest.getParent(), self.channel,
-            types.STATESERVER_OBJECT_GET_ZONES_OBJECTS_2)
+                            types.STATESERVER_OBJECT_GET_ZONES_OBJECTS_2)
         datagram.add_uint32(interest.getContext())
         datagram.add_uint16(len(finalZones))
         for zone in finalZones:
             datagram.add_uint32(zone)
-            
+
         self.network.handle_send_connection_datagram(datagram)
-            
+
     def handle_interest_done(self, interestId, context):
         dg = PyDatagram()
         dg.addUint16(types.CLIENT_DONE_INTEREST_RESP)
         dg.addUint16(interestId)
         dg.addUint32(context)
         self.handle_send_datagram(dg)
-        
+
     def handle_interest_complete_callback(self, complete, contextId):
         print(complete, contextId)
         if complete:
@@ -1563,7 +1614,7 @@ class Client(io.NetworkHandler):
                 zone = interest.getZones()[-1]
                 if zone in self._seen_objects.keys():
                     self.handle_interest_done(interest.id, contextId)
-            
+
     def close_zones(self, kill_zones, parent):
         # send delete for all objects we've seen that were in the zone
         # that we've just left...
@@ -1576,37 +1627,37 @@ class Client(io.NetworkHandler):
                         self.send_client_object_delete_resp(do_id)
 
                 del self._seen_objects[zone]
-                
+
                 # Tell the State object to stop watching this zone
                 datagram = io.NetworkDatagram()
                 datagram.add_header(parent, self.channel,
-                    types.STATESERVER_OBJECT_CLEAR_WATCH)
+                                    types.STATESERVER_OBJECT_CLEAR_WATCH)
                 datagram.add_uint32(zone)
                 self.network.handle_send_connection_datagram(datagram)
-        
+
     def lookup_interest(self, parent, zone):
         interests = []
         for interest in self._interest_manager.get_interest_objects():
             if interest.getParent() == parent and interest.hasZone(zone):
                 interests.append(interest)
-                
+
         return interests
-            
+
     def build_interest(self, di):
         interestId = di.getUint16()
         contextId = di.getUint32()
         parentId = di.getUint32()
-        
+
         interest = Interest()
         interest.setId(interestId)
         interest.setParent(parentId)
         interest.setContext(contextId)
-        
+
         while di.getRemainingSize() > 0:
             interest.addZone(di.getUint32())
-        
+
         return interest
-        
+
     def handle_object_get_zones_objects_resp_2(self, di):
         contextId = di.get_uint32()
         if self._pending_interests.has_key(contextId):
@@ -1615,70 +1666,76 @@ class Client(io.NetworkHandler):
                 actual_objects = 0
                 for _ in range(num_objects):
                     do_id = di.get_uint64()
-                    if not self.is_perma_object(do_id) and not self.is_my_avatar(do_id) and not self.has_seen_object(do_id):
+                    if not self.is_perma_object(do_id) and not self.is_my_avatar(do_id) and not self.has_seen_object(
+                            do_id):
                         self._pending_objects.append(do_id)
                         actual_objects += 1
-                
+
                 if actual_objects == 0:
                     self._deferred_callback.callback(True)
                     return
-                
+
                 if self._deferred_callback:
-                    self._deferred_callback.callback(False)      
+                    self._deferred_callback.callback(False)
             else:
                 if self._deferred_callback:
-                    self._deferred_callback.callback(True)   
+                    self._deferred_callback.callback(True)
         else:
-            self.notify.info("Unknown context id recieved %d" %contextId)
-            
+            self.notify.info("Unknown context id recieved %d" % contextId)
+
     def is_perma_object(self, doId):
         for perma_zone in PERMA_ZONES:
             if self._seen_objects.has_key(perma_zone):
                 if doId in self._seen_objects[perma_zone]:
                     return True
-        
+
         return False
-        
+
     def is_my_avatar(self, doId):
         return doId == self.get_avatar_id_from_connection_channel(self.channel)
-        
+
     def handle_login(self, di):
         try:
-            login_name = di.get_string() # Login Name
-            ip_address = di.get_uint32() # IP Address - Depreciated
-            udp_port = di.get_uint16() # Port - Depreciated
-            server_version = di.get_string() # Server Version
-            hash_val = di.get_uint32() # DC Hash
-            password = di.get_string() # Password
-            create_account = di.get_bool() # Allow Account Creation Flag
-            priv_string = di.get_string() # Privilege String
-            dislid = di.get_uint32() # DISL Id
-            otp_whitelist = di.get_string() # OTP_WHITELIST Priv String, If YES. Whitelist is enabled internally by the OTP.
+            login_name = di.get_string()  # Login Name
+            ip_address = di.get_uint32()  # IP Address - Depreciated
+            udp_port = di.get_uint16()  # Port - Depreciated
+            server_version = di.get_string()  # Server Version
+            hash_val = di.get_uint32()  # DC Hash
+            password = di.get_string()  # Password
+            create_account = di.get_bool()  # Allow Account Creation Flag
+            priv_string = di.get_string()  # Privilege String
+            dislid = di.get_uint32()  # DISL Id
+            otp_whitelist = di.get_string()  # OTP_WHITELIST Priv String, If YES. Whitelist is enabled internally by the OTP.
         except:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM, 'Received truncated datagram from channel: %d!' % (self._channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
+                                        'Received truncated datagram from channel: %d!' % (self._channel))
             return
 
         if server_version != self.network.server_version:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION, 'Invalid server version: %s, expected: %s!' % (server_version, self.network.server_version))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION,
+                                        'Invalid server version: %s, expected: %s!' % (
+                                        server_version, self.network.server_version))
             return
 
-        if hash_val != self.network.server_hash_val and 0: # Disabled for testing with EXE
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH, 'Got an invalid dc hash value: %d expected: %d!' % (hash_val, self.network.server_hash_val))
+        if hash_val != self.network.server_hash_val and 0:  # Disabled for testing with EXE
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH,
+                                        'Got an invalid dc hash value: %d expected: %d!' % (
+                                        hash_val, self.network.server_hash_val))
             return
 
         callback = lambda: self.__handle_login_resp(login_name)
         self.network.account_manager.handle_operation(LoadAccountFSM, self, callback, login_name)
-        
+
     def __handle_login_resp(self, play_token):
         datagram = io.NetworkDatagram()
         datagram.add_uint16(types.CLIENT_LOGIN_RESP)
-        datagram.add_uint8(0) # Return Code
-        datagram.add_uint32(0) # Account Id
-        datagram.add_string('') # Error Text
-        datagram.add_uint32(int(time.time())) # Epoch Sec - Depreciated
-        datagram.add_uint32(int(time.clock())) # Epoch Usec - Depreciated
+        datagram.add_uint8(0)  # Return Code
+        datagram.add_uint32(0)  # Account Id
+        datagram.add_string('')  # Error Text
+        datagram.add_uint32(int(time.time()))  # Epoch Sec - Depreciated
+        datagram.add_uint32(int(time.clock()))  # Epoch Usec - Depreciated
         self.handle_send_datagram(datagram)
-            
+
     def handle_login_2(self, di):
         try:
             play_token = di.get_string()
@@ -1688,19 +1745,25 @@ class Client(io.NetworkHandler):
             check_hash_val = di.get_string()
             priv_string = di.get_string()
         except:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM, 'Received truncated datagram from channel: %d!' % (self._channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
+                                        'Received truncated datagram from channel: %d!' % (self._channel))
             return
 
         if server_version != self.network.server_version:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION, 'Invalid server version: %s, expected: %s!' % (server_version, self.network.server_version))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION,
+                                        'Invalid server version: %s, expected: %s!' % (
+                                        server_version, self.network.server_version))
             return
 
-        if hash_val != self.network.server_hash_val and 0: # Disabled for testing with EXE
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH, 'Got an invalid dc hash value: %d expected: %d!' % (hash_val, self.network.server_hash_val))
+        if hash_val != self.network.server_hash_val and 0:  # Disabled for testing with EXE
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH,
+                                        'Got an invalid dc hash value: %d expected: %d!' % (
+                                        hash_val, self.network.server_hash_val))
             return
 
         if token_type != types.CLIENT_LOGIN_2_PLAY_TOKEN:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE, 'Invalid or unsupported play token type: %d!' % (token_type))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE,
+                                        'Invalid or unsupported play token type: %d!' % (token_type))
             return
 
         callback = lambda: self.__handle_login_2_resp(play_token)
@@ -1709,69 +1772,74 @@ class Client(io.NetworkHandler):
     def __handle_login_2_resp(self, play_token):
         datagram = io.NetworkDatagram()
         datagram.add_uint16(types.CLIENT_LOGIN_2_RESP)
-        datagram.add_uint8(0) # Return Code
-        datagram.add_string('All Ok') # Response String
-        datagram.add_string(play_token) # Account Name
-        datagram.add_uint8(1) # Chat Code
-        datagram.add_uint32(int(time.time())) # Current Time (SEC) - Depreciated
-        datagram.add_uint32(int(time.clock())) # Current Time (USECS) - Depreciated
-        datagram.add_uint8(1) # Paid Flag
-        datagram.add_int32(1000 * 60 * 60) # Remaining Minutes
+        datagram.add_uint8(0)  # Return Code
+        datagram.add_string('All Ok')  # Response String
+        datagram.add_string(play_token)  # Account Name
+        datagram.add_uint8(1)  # Chat Code
+        datagram.add_uint32(int(time.time()))  # Current Time (SEC) - Depreciated
+        datagram.add_uint32(int(time.clock()))  # Current Time (USECS) - Depreciated
+        datagram.add_uint8(1)  # Paid Flag
+        datagram.add_int32(1000 * 60 * 60)  # Remaining Minutes
         self.handle_send_datagram(datagram)
-        
+
     def handle_login_toontown(self, di):
         try:
             play_token = di.get_string()
             server_version = di.get_string()
             hash_val = di.get_uint32()
             token_type = di.get_int32()
-            #check_hash_val = di.get_string() - Removed
+            # check_hash_val = di.get_string() - Removed
             priv_string = di.get_string()
         except:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM, 'Received truncated datagram from channel: %d!' % (self._channel))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
+                                        'Received truncated datagram from channel: %d!' % (self._channel))
             return
 
         if server_version != self.network.server_version:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION, 'Invalid server version: %s, expected: %s!' % (server_version, self.network.server_version))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_VERSION,
+                                        'Invalid server version: %s, expected: %s!' % (
+                                        server_version, self.network.server_version))
             return
 
-        if hash_val != self.network.server_hash_val and 0: # Disabled for testing with EXE
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH, 'Got an invalid dc hash value: %d expected: %d!' % (hash_val, self.network.server_hash_val))
+        if hash_val != self.network.server_hash_val and 0:  # Disabled for testing with EXE
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_BAD_DCHASH,
+                                        'Got an invalid dc hash value: %d expected: %d!' % (
+                                        hash_val, self.network.server_hash_val))
             return
 
         if token_type != types.CLIENT_LOGIN_2_PLAY_TOKEN:
-            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE, 'Invalid or unsupported play token type: %d!' % (token_type))
+            self.handle_send_disconnect(types.CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE,
+                                        'Invalid or unsupported play token type: %d!' % (token_type))
             return
 
         callback = lambda: self.__handle_login_toontown_resp(play_token)
         self.network.account_manager.handle_operation(LoadAccountFSM, self, callback, play_token)
-        
-        
+
     def __handle_login_toontown_resp(self, play_token):
         datagram = io.NetworkDatagram()
         datagram.add_uint16(126)
         datagram.add_uint8(0)
         datagram.add_string('All Ok')
-        datagram.add_uint32(0) # account number
-        datagram.add_string("") # account name
-        datagram.add_uint8(1) # account name approved
-        datagram.add_string("YES") # open chat enabled
-        datagram.add_string("YES") # create friends with chat
-        datagram.add_string("") # chat code creation rule ?
-        datagram.add_uint32(int(time.time())) # sec
-        datagram.add_uint32(int(time.clock())) # usec
-        datagram.add_string("FULL") # access
-        datagram.add_string("YES") # whitelist enabled
-        datagram.add_string("") # last logged in
-        datagram.add_int32(100000) # account days
+        datagram.add_uint32(0)  # account number
+        datagram.add_string("")  # account name
+        datagram.add_uint8(1)  # account name approved
+        datagram.add_string("YES")  # open chat enabled
+        datagram.add_string("YES")  # create friends with chat
+        datagram.add_string("")  # chat code creation rule ?
+        datagram.add_uint32(int(time.time()))  # sec
+        datagram.add_uint32(int(time.clock()))  # usec
+        datagram.add_string("FULL")  # access
+        datagram.add_string("YES")  # whitelist enabled
+        datagram.add_string("")  # last logged in
+        datagram.add_int32(100000)  # account days
         datagram.add_string("WITH_PARENT_ACCOUNT")
-        datagram.add_string("") # username
+        datagram.add_string("")  # username
         self.handle_send_datagram(datagram)
 
     def handle_get_shard_list(self):
         datagram = io.NetworkDatagram()
         datagram.add_header(types.STATESERVER_CHANNEL, self.channel,
-            types.STATESERVER_GET_SHARD_ALL)
+                            types.STATESERVER_GET_SHARD_ALL)
 
         self.network.handle_send_connection_datagram(datagram)
 
@@ -1785,7 +1853,7 @@ class Client(io.NetworkHandler):
     def handle_get_avatars(self):
         account_id = self.get_account_id_from_channel_code(self.channel)
         self.network.account_manager.handle_operation(RetrieveAvatarsFSM, self,
-            self.__handle_retrieve_avatars_resp, account_id)
+                                                      self.__handle_retrieve_avatars_resp, account_id)
 
     def __handle_retrieve_avatars_resp(self, avatar_data):
         datagram = io.NetworkDatagram()
@@ -1812,14 +1880,15 @@ class Client(io.NetworkHandler):
             index = di.get_uint8()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         account_id = self.get_account_id_from_channel_code(self.channel)
         self.network.account_manager.handle_operation(CreateAvatarFSM, self,
-            self.__handle_create_avatar_resp, echo_context, account_id, dna_string, index)
+                                                      self.__handle_create_avatar_resp, echo_context, account_id,
+                                                      dna_string, index)
 
     def __handle_create_avatar_resp(self, echo_context, avatar_id):
         datagram = io.NetworkDatagram()
@@ -1834,14 +1903,14 @@ class Client(io.NetworkHandler):
             avatar_id = di.get_uint32()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         account_id = self.get_account_id_from_channel_code(self.channel)
         self.network.account_manager.handle_operation(LoadAvatarFSM, self,
-            self.__handle_set_avatar_resp, account_id, avatar_id)
+                                                      self.__handle_set_avatar_resp, account_id, avatar_id)
 
     def __handle_set_avatar_resp(self, avatar_id):
         pass
@@ -1867,13 +1936,13 @@ class Client(io.NetworkHandler):
             avatar_id = di.get_uint32()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         self.network.account_manager.handle_operation(GetAvatarDetailsFSM, self,
-            self.handle_object_enter_owner, avatar_id)
+                                                      self.handle_object_enter_owner, avatar_id)
 
     def handle_set_wishname(self, di):
         try:
@@ -1881,13 +1950,13 @@ class Client(io.NetworkHandler):
             wish_name = di.get_string()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         self.network.account_manager.handle_operation(SetNameFSM, self,
-            self.__handle_set_wishname_resp, avatar_id, wish_name)
+                                                      self.__handle_set_wishname_resp, avatar_id, wish_name)
 
     def __handle_set_wishname_resp(self, avatar_id, wish_name):
         datagram = io.NetworkDatagram()
@@ -1914,7 +1983,7 @@ class Client(io.NetworkHandler):
             name_flags.append(di.get_uint16())
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % self._channel)
+                                        'Received truncated datagram from channel: %d!' % self._channel)
             return
 
         pattern = [
@@ -1924,7 +1993,7 @@ class Client(io.NetworkHandler):
             (name_indices[3], name_flags[3])]
 
         self.network.account_manager.handle_operation(SetNamePatternFSM, self,
-            self.__handle_set_name_pattern_resp, avatar_id, pattern)
+                                                      self.__handle_set_name_pattern_resp, avatar_id, pattern)
 
     def __handle_set_name_pattern_resp(self, avatar_id):
         datagram = io.NetworkDatagram()
@@ -1938,7 +2007,7 @@ class Client(io.NetworkHandler):
         avatar_id = self.get_avatar_id_from_connection_channel(self.channel)
 
         self.network.account_manager.handle_operation(LoadFriendsListFSM, self,
-            self.__handle_get_friends_list_callback, account_id, avatar_id)
+                                                      self.__handle_get_friends_list_callback, account_id, avatar_id)
 
     def __handle_get_friends_list_callback(self):
         pass
@@ -1948,14 +2017,14 @@ class Client(io.NetworkHandler):
             avatar_id = di.get_uint32()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         account_id = self.get_account_id_from_channel_code(self.channel)
         self.network.account_manager.handle_operation(DeleteAvatarFSM, self,
-            self.__handle_delete_avatar_resp, account_id, avatar_id)
+                                                      self.__handle_delete_avatar_resp, account_id, avatar_id)
 
     def __handle_delete_avatar_resp(self, avatar_data):
         datagram = io.NetworkDatagram()
@@ -1981,8 +2050,8 @@ class Client(io.NetworkHandler):
             shard_id = di.get_uint32()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
@@ -1991,7 +2060,7 @@ class Client(io.NetworkHandler):
 
         datagram = io.NetworkDatagram()
         datagram.add_header(avatar_id, self.channel,
-            types.STATESERVER_OBJECT_SET_AI)
+                            types.STATESERVER_OBJECT_SET_AI)
 
         datagram.add_uint64(shard_id - 1)
         self.network.handle_send_connection_datagram(datagram)
@@ -2007,8 +2076,8 @@ class Client(io.NetworkHandler):
             zone_id = di.get_uint16()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
@@ -2017,7 +2086,7 @@ class Client(io.NetworkHandler):
 
         datagram = io.NetworkDatagram()
         datagram.add_header(avatar_id, self.channel,
-            types.STATESERVER_OBJECT_SET_ZONE)
+                            types.STATESERVER_OBJECT_SET_ZONE)
 
         datagram.add_uint32(zone_id)
         self.network.handle_send_connection_datagram(datagram)
@@ -2046,11 +2115,11 @@ class Client(io.NetworkHandler):
         # request all of the objects in the zones we have interest in
         avatar_id = self.get_avatar_id_from_connection_channel(self.channel)
         self._deferred_callback = util.DeferredCallback(self.handle_set_zone_complete_callback,
-            old_parent_id, old_zone_id, new_parent_id, new_zone_id)
+                                                        old_parent_id, old_zone_id, new_parent_id, new_zone_id)
 
         datagram = io.NetworkDatagram()
         datagram.add_header(avatar_id, self.channel,
-            types.STATESERVER_OBJECT_GET_ZONES_OBJECTS)
+                            types.STATESERVER_OBJECT_GET_ZONES_OBJECTS)
 
         # pack the interest zones
         interest_zones = list(self._interest_manager.interest_zones)
@@ -2068,9 +2137,9 @@ class Client(io.NetworkHandler):
 
         new_parent_id = di.get_uint32()
         new_zone_id = di.get_uint32()
-        
+
         context = di.get_uint32()
-        
+
         if context != 0:
             if self._context_to_callback.has_key(context):
                 callback = self._context_to_callback[context]
@@ -2157,7 +2226,7 @@ class Client(io.NetworkHandler):
         # generate this object, as it was already generated elsewhere...
         if do_id in self._owned_objects:
             return
-            
+
         if self.has_seen_object(do_id):
             return
 
@@ -2170,23 +2239,23 @@ class Client(io.NetworkHandler):
             else:
                 datagram.add_uint16(types.CLIENT_CREATE_OBJECT_REQUIRED_OTHER)
 
-            #2003:
-            #datagram.add_uint16(dc_id)
-            #datagram.add_uint32(do_id)
-            
+            # 2003:
+            # datagram.add_uint16(dc_id)
+            # datagram.add_uint32(do_id)
+
             datagram.add_uint32(parent_id)
             datagram.add_uint32(zone_id)
             datagram.add_uint16(dc_id)
             datagram.add_uint32(do_id)
-            
+
             datagram.append_data(di.get_remaining_bytes())
             self.handle_send_datagram(datagram)
-            
+
             if do_id in self._deleted_object_history:
                 self._deleted_object_history.remove(do_id)
 
-            #seen_objects = self._seen_objects.setdefault(zone_id, [])
-            #seen_objects.append(do_id)
+            # seen_objects = self._seen_objects.setdefault(zone_id, [])
+            # seen_objects.append(do_id)
             if not self._seen_objects.has_key(zone_id):
                 self._seen_objects[zone_id] = []
             if do_id not in self._seen_objects[zone_id]:
@@ -2217,11 +2286,11 @@ class Client(io.NetworkHandler):
         # generate request sent by the StateServer...
         if not self.has_seen_object(do_id, True):
             return
-            
+
         # double check to prevent sending this more than one time
         if do_id in self._deleted_object_history:
             return
-            
+
         self._deleted_object_history.append(do_id)
 
         print("deleting id %d" % do_id)
@@ -2231,7 +2300,7 @@ class Client(io.NetworkHandler):
         self.handle_send_datagram(datagram)
 
     def handle_object_delete_ram(self, di):
-        doId = di.get_uint32()   
+        doId = di.get_uint32()
         self.send_client_object_delete_resp(doId)
         for zoneId in self._seen_objects.keys():
             for objId in self._seen_objects[zoneId]:
@@ -2244,14 +2313,14 @@ class Client(io.NetworkHandler):
             field_id = di.get_uint16()
         except:
             self.handle_send_disconnect(types.CLIENT_DISCONNECT_TRUNCATED_DATAGRAM,
-                'Received truncated datagram from channel: %d!' % (
-                    self._channel))
+                                        'Received truncated datagram from channel: %d!' % (
+                                            self._channel))
 
             return
 
         datagram = io.NetworkDatagram()
         datagram.add_header(do_id, self.channel,
-            types.STATESERVER_OBJECT_UPDATE_FIELD)
+                            types.STATESERVER_OBJECT_UPDATE_FIELD)
 
         datagram.add_uint32(do_id)
         datagram.add_uint16(field_id)
@@ -2284,6 +2353,7 @@ class Client(io.NetworkHandler):
             self.network.channel_allocator.free(self.allocated_channel)
 
         io.NetworkHandler.shutdown(self)
+
 
 class ClientAgent(io.NetworkListener, io.NetworkConnector):
     notify = notify.new_category('ClientAgent')
@@ -2330,7 +2400,7 @@ class ClientAgent(io.NetworkListener, io.NetworkConnector):
         handler = self.get_handler_from_channel(channel)
         if not handler:
             self.notify.debug('Cannot handle message type: %d '
-                'for unknown channel: %d!' % (message_type, channel))
+                              'for unknown channel: %d!' % (message_type, channel))
 
             return
 

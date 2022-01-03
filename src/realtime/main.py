@@ -4,7 +4,7 @@
  * Licensing information can found in 'LICENSE', which is part of this source code package.
 """
 
-import builtins 
+import builtins
 import os
 
 from panda3d.core import *
@@ -17,13 +17,14 @@ from direct.task.TaskManagerGlobal import taskMgr as task_mgr
 
 from otp_server.realtime.notifier import notify
 
-builtins .config = get_config_showbase()
-builtins .task_mgr = task_mgr
-builtins .vfs = VirtualFileSystem.get_global_ptr()
+builtins.config = get_config_showbase()
+builtins.task_mgr = task_mgr
+builtins.vfs = VirtualFileSystem.get_global_ptr()
 
 from otp_server.realtime import io, types, clientagent, messagedirector, stateserver, database
 
 notify = notify.new_category('Main')
+
 
 def setup_component(cls, *args, **kwargs):
     notify.info('Starting component: %s...' % (
@@ -34,11 +35,13 @@ def setup_component(cls, *args, **kwargs):
 
     return component
 
+
 def shutdown_component(component):
     notify.info('Shutting down component: %s...' % (
         component.__class__.__name__))
 
     component.shutdown()
+
 
 def main():
     dc_loader = io.NetworkDCLoader()
@@ -62,17 +65,17 @@ def main():
     database_channel = config.GetInt('database-channel', types.DBSERVER_ID)
 
     message_director = setup_component(messagedirector.MessageDirector, message_director_address,
-        message_director_port)
+                                       message_director_port)
 
     client_agent = setup_component(clientagent.ClientAgent, dc_loader, client_agent_address,
-        client_agent_port, client_agent_connect_address, client_agent_connect_port,
-        client_agent_channel)
+                                   client_agent_port, client_agent_connect_address, client_agent_connect_port,
+                                   client_agent_channel)
 
     state_server = setup_component(stateserver.StateServer, dc_loader, state_server_connect_address,
-        state_server_connect_port, state_server_channel)
+                                   state_server_connect_port, state_server_channel)
 
     database_server = setup_component(database.DatabaseServer, dc_loader, database_connect_address,
-        database_connect_port, database_channel)
+                                      database_connect_port, database_channel)
 
     task_mgr.run()
 

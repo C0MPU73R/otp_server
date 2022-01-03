@@ -1,7 +1,11 @@
-from otp_server.game.ToontownGlobals import *
+from otp_server.src.game.ToontownGlobals import *
 from direct.directnotify import DirectNotifyGlobal
+
+from src.game.ToontownGlobals import *
+
 zoneUtilNotify = DirectNotifyGlobal.directNotify.newCategory('ZoneUtil')
 tutorialDict = None
+
 
 def isGoofySpeedwayZone(zoneId):
     return zoneId == 8000
@@ -75,6 +79,7 @@ def isPetshop(zoneId):
 
 
 def getWhereName(zoneId, isToon):
+    where = '-1' # Give where an intial not found value if not found.
     if tutorialDict:
         if zoneId in tutorialDict['interiors']:
             where = 'toonInterior'
@@ -121,7 +126,7 @@ def getWhereName(zoneId, isToon):
 
 def getBranchZone(zoneId):
     if tutorialDict:
-        branchId = tutorialDict['branch']
+        branchId = tutorialDict['branch'] # TODO: Check if this can be None
     else:
         branchId = zoneId - zoneId % 100
         if not isCogHQZone(zoneId):
@@ -135,13 +140,13 @@ def getCanonicalBranchZone(zoneId):
 
 
 def isWelcomeValley(zoneId):
-    return zoneId == WelcomeValleyToken or zoneId >= WelcomeValleyBegin and zoneId < WelcomeValleyEnd
+    return zoneId == WelcomeValleyToken or WelcomeValleyBegin <= zoneId < WelcomeValleyEnd
 
 
 def getCanonicalZoneId(zoneId):
     if zoneId == WelcomeValleyToken:
         zoneId = ToontownCentral
-    elif zoneId >= WelcomeValleyBegin and zoneId < WelcomeValleyEnd:
+    elif WelcomeValleyBegin <= zoneId < WelcomeValleyEnd:
         zoneId = zoneId % 2000
         if zoneId < 1000:
             zoneId = zoneId + ToontownCentral
@@ -151,9 +156,9 @@ def getCanonicalZoneId(zoneId):
 
 
 def getTrueZoneId(zoneId, currentZoneId):
-    if zoneId >= WelcomeValleyBegin and zoneId < WelcomeValleyEnd or zoneId == WelcomeValleyToken:
+    if WelcomeValleyBegin <= zoneId < WelcomeValleyEnd or zoneId == WelcomeValleyToken:
         zoneId = getCanonicalZoneId(zoneId)
-    if currentZoneId >= WelcomeValleyBegin and currentZoneId < WelcomeValleyEnd:
+    if WelcomeValleyBegin <= currentZoneId < WelcomeValleyEnd:
         hoodId = getHoodId(zoneId)
         offset = currentZoneId - currentZoneId % 2000
         if hoodId == ToontownCentral:
@@ -202,8 +207,8 @@ def overrideOn(branch, exteriorList, interiorList):
     if tutorialDict:
         zoneUtilNotify.warning('setTutorialDict: tutorialDict is already set!')
     tutorialDict = {'branch': branch,
-     'exteriors': exteriorList,
-     'interiors': interiorList}
+                    'exteriors': exteriorList,
+                    'interiors': interiorList}
 
 
 def overrideOff():
@@ -212,7 +217,7 @@ def overrideOff():
     return
 
 
-def getWakeInfo(hoodId = None, zoneId = None):
+def getWakeInfo(hoodId=None, zoneId=None):
     wakeWaterHeight = 0
     showWake = 0
     try:

@@ -3,11 +3,12 @@
  * Written by Caleb Marshall <anythingtechpro@gmail.com>, August 17th, 2017
  * Licensing information can found in 'LICENSE', which is part of this source code package.
 """
-
+import inspect
 import os
 import collections
 import threading
 
+from direct.showbase.VFSImporter import vfs
 from panda3d.core import *
 from panda3d.direct import *
 
@@ -16,10 +17,12 @@ from direct.distributed.PyDatagramIterator import PyDatagramIterator
 from otp_server.realtime import types
 from otp_server.realtime.notifier import notify
 
+
 class NetworkError(RuntimeError):
     """
     A network specific runtime error
     """
+
 
 class NetworkDatagram(NetDatagram):
     """
@@ -40,12 +43,14 @@ class NetworkDatagram(NetDatagram):
         self.add_uint16(message_type)
         self.add_uint64(channel)
 
+
 class NetworkDatagramIterator(PyDatagramIterator):
     """
     A class that inherits from panda's C++ DatagramIterator buffer.
     This class adds useful methods and functions for talking
     to the OTP's internal cluster participants...
     """
+
 
 class NetworkDCLoader(object):
     notify = notify.new_category('NetworkDCLoader')
@@ -88,19 +93,19 @@ class NetworkDCLoader(object):
         else:
             for dc_fileName in dc_file_names:
                 searchPath = DSearchPath()
-                
+
                 # In other environments, including the dev environment, look here:
                 searchPath.appendDirectory(Filename('phase_3/etc'))
                 base = os.path.expandvars('$TOONTOWN') or './toontown'
-                searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars(base+'/src/configfiles')))
+                searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars(base + '/src/configfiles')))
                 base = os.path.expandvars('$OTP') or './otp'
-                searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars(base+'/src/configfiles')))
+                searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars(base + '/src/configfiles')))
                 # RobotToonManager needs to look for file in current directory
                 searchPath.appendDirectory(Filename('.'))
 
                 pathname = Filename(dc_fileName)
                 vfs.resolveFilename(pathname, searchPath)
-                
+
                 read_result = self._dc_file.read(pathname)
                 if not read_result:
                     self.notify.error('Could not read dc file: %s' % pathname)
@@ -112,18 +117,18 @@ class NetworkDCLoader(object):
         for i in range(self._dc_file.get_num_classes()):
             dclass = self._dc_file.get_class(i)
             number = dclass.get_number()
-            class_name = dclass.get_name() + self._dc_suffix 
+            class_name = dclass.get_name() + self._dc_suffix
 
             # Does the class have a definition defined in the newly
             # imported namespace?
             class_def = dc_imports.get(class_name)
 
             # Also try it without the dc_suffix.
-            if class_def == None:
+            if class_def is None:
                 class_name = dclass.get_name()
                 class_def = dc_imports.get(class_name)
 
-            if class_def == None:
+            if class_def is None:
                 self.notify.debug('No class definition for %s.' % class_name)
             else:
                 if inspect.ismodule(class_def):
@@ -142,6 +147,7 @@ class NetworkDCLoader(object):
             if number >= 0:
                 self._dclasses_by_number[number] = dclass
 
+
 class NetworkManager(object):
     notify = notify.new_category('NetworkManager')
 
@@ -159,6 +165,7 @@ class NetworkManager(object):
 
     def get_avatar_id_from_connection_channel(self, channel):
         return channel & 0xffffffff
+
 
 class NetworkConnector(NetworkManager):
     notify = notify.new_category('NetworkConnector')
@@ -202,7 +209,7 @@ class NetworkConnector(NetworkManager):
 
     def setup(self):
         self.__socket = self.__manager.open_TCP_client_connection(self.__address,
-            self.__port, self.__timeout)
+                                                                  self.__port, self.__timeout)
 
         if not self.__socket:
             raise NetworkError('Failed to connect TCP socket on address: <%s:%d>!' % (
@@ -212,13 +219,13 @@ class NetworkConnector(NetworkManager):
         self.register_for_channel(self._channel)
 
         self.__read_task = task_mgr.add(self.__read_incoming,
-            self.get_unique_name('read-incoming'))
+                                        self.get_unique_name('read-incoming'))
 
         self.__update_task = task_mgr.add(self.__update,
-            self.get_unique_name('update-handler'))
+                                          self.get_unique_name('update-handler'))
 
         self.__disconnect_task = task_mgr.add(self.__listen_disconnect,
-            self.get_unique_name('listen-disconnect'))
+                                              self.get_unique_name('listen-disconnect'))
 
     def register_for_channel(self, channel):
         """
@@ -335,6 +342,7 @@ class NetworkConnector(NetworkManager):
         self.__update_task = None
         self.__disconnect_task = None
 
+
 class NetworkHandler(NetworkManager):
     notify = notify.new_category('NetworkHandler')
 
@@ -388,7 +396,7 @@ class NetworkHandler(NetworkManager):
 
     def setup(self):
         self.__update_task = task_mgr.add(self.__update,
-            self.get_unique_name('update-handler'))
+                                          self.get_unique_name('update-handler'))
 
         if self._channel:
             self.register_for_channel(self._channel)
@@ -397,7 +405,7 @@ class NetworkHandler(NetworkManager):
         """
         Registers our connections channel with the MessageDirector
         """
-        
+
         datagram = NetworkDatagram()
         datagram.add_control_header(channel, types.CONTROL_SET_CHANNEL)
         self._network.handle_send_connection_datagram(datagram)
@@ -407,7 +415,6 @@ class NetworkHandler(NetworkManager):
         """
         Unregisters our connections channel from the MessageDirector
         """
-        
 
         datagram = NetworkDatagram()
         datagram.add_control_header(channel, types.CONTROL_REMOVE_CHANNEL)
@@ -471,7 +478,8 @@ class NetworkHandler(NetworkManager):
         """
         Handles disconnection when the socket connection closes
         """
-        self.unregister_for_channel(self.get_puppet_connection_channel(self.get_avatar_id_from_connection_channel(self._channel)))
+        self.unregister_for_channel(
+            self.get_puppet_connection_channel(self.get_avatar_id_from_connection_channel(self._channel)))
         self.unregister_for_channel(self._channel)
         self._network.handle_disconnected(self)
 
@@ -486,6 +494,7 @@ class NetworkHandler(NetworkManager):
             task_mgr.remove(self.__update_task)
 
         self.__update_task = None
+
 
 class NetworkListener(NetworkManager):
     notify = notify.new_category('NetworkListener')
@@ -517,7 +526,7 @@ class NetworkListener(NetworkManager):
 
     def setup(self):
         self.__socket = self.__manager.open_TCP_server_rendezvous(self.__address,
-            self.__port, self.__backlog)
+                                                                  self.__port, self.__backlog)
 
         if not self.__socket:
             raise NetworkError('Failed to bind TCP socket on address: <%s:%d>!' % (
@@ -526,13 +535,13 @@ class NetworkListener(NetworkManager):
         self.__listener.add_connection(self.__socket)
 
         self.__listen_task = task_mgr.add(self.__listen_incoming,
-            self.get_unique_name('listen-incoming'))
+                                          self.get_unique_name('listen-incoming'))
 
         self.__read_task = task_mgr.add(self.__read_incoming,
-            self.get_unique_name('read-incoming'))
+                                        self.get_unique_name('read-incoming'))
 
         self.__disconnect_task = task_mgr.add(self.__listen_disconnect,
-            self.get_unique_name('listen-disconnect'))
+                                              self.get_unique_name('listen-disconnect'))
 
     def __listen_incoming(self, task):
         """
@@ -566,8 +575,8 @@ class NetworkListener(NetworkManager):
         """
         Watches all connected socket objects and determines if the stream has ended...
         """
-        
-        #?
+
+        # ?
         try:
             for handler in self._handlers.values():
                 if not self.__reader.is_connection_ok(handler.connection):

@@ -6,25 +6,25 @@
  * Licensing information can found in 'LICENSE', which is part of this source code package.
 """
 
-OTP_DO_ID_SERVER =                4600
+OTP_DO_ID_SERVER = 4600
 
-OTP_DO_ID_UBER_DOG =              4601
+OTP_DO_ID_UBER_DOG = 4601
 
 # Broadcast Channels
 OTP_CHANNEL_AI_AND_UD_BROADCAST = 4602
-OTP_CHANNEL_UD_BROADCAST        = 4603
-OTP_CHANNEL_AI_BROADCAST        = 4604
+OTP_CHANNEL_UD_BROADCAST = 4603
+OTP_CHANNEL_AI_BROADCAST = 4604
 
-OTP_NET_MSGR_CHANNEL_ID_ALL_AI   = 4605
+OTP_NET_MSGR_CHANNEL_ID_ALL_AI = 4605
 OTP_NET_MSGR_CHANNEL_ID_UBER_DOG = 4606
-OTP_NET_MSGR_CHANNEL_ID_AI_ONLY  = 4607
+OTP_NET_MSGR_CHANNEL_ID_AI_ONLY = 4607
 
-OTP_ZONE_ID_INVALID =                0 # invalid zone id (like None or NULL).
-OTP_ZONE_ID_OLD_QUIET_ZONE =         1 # obsolete/depreciated
-OTP_ZONE_ID_MANAGEMENT =             2 # was uber zone, serves similar role with new name
-OTP_ZONE_ID_DISTRICTS =              3 # districts/shards within a game
-OTP_ZONE_ID_DISTRICTS_STATS =        4 # Were the district Stats Items are located
-OTP_ZONE_ID_ELEMENTS =               5 # a collection of distributed objects, e.g. members in a crew
+OTP_ZONE_ID_INVALID = 0  # invalid zone id (like None or NULL).
+OTP_ZONE_ID_OLD_QUIET_ZONE = 1  # obsolete/depreciated
+OTP_ZONE_ID_MANAGEMENT = 2  # was uber zone, serves similar role with new name
+OTP_ZONE_ID_DISTRICTS = 3  # districts/shards within a game
+OTP_ZONE_ID_DISTRICTS_STATS = 4  # Were the district Stats Items are located
+OTP_ZONE_ID_ELEMENTS = 5  # a collection of distributed objects, e.g. members in a crew
 # OTP_ZONE_ID_<each avatarId>       100000??? to ?????? # avatar ID zones
 # OTP_ZONE_ID_<each guildId>        ?? to ??? # guild ID zones
 # OTP_ZONE_ID_<each toontown>       ?? to ??? # old style toontown zones
@@ -38,103 +38,103 @@ OTP_SERVER_ROOT_DO_ID = 4007
 CLIENTAGENT_CHANNEL = 1000
 STATESERVER_CHANNEL = 1001
 
-BAD_CHANNEL_ID = 0 # 0xffffffffffffffff # -1
-BAD_ZONE_ID =    0 # 0xffffffff # -1
-BAD_DO_ID =      0 # 0xffffffff # -1
+BAD_CHANNEL_ID = 0  # 0xffffffffffffffff # -1
+BAD_ZONE_ID = 0  # 0xffffffff # -1
+BAD_DO_ID = 0  # 0xffffffff # -1
 
 CHANNEL_CLIENT_BROADCAST = 4014
 
 # Control Transactions
-CONTROL_MESSAGE =               4001
-CONTROL_SET_CHANNEL =           2001
-CONTROL_REMOVE_CHANNEL =        2002
+CONTROL_MESSAGE = 4001
+CONTROL_SET_CHANNEL = 2001
+CONTROL_REMOVE_CHANNEL = 2002
 
-CONTROL_SET_CON_NAME =          2004
-CONTROL_SET_CON_URL =           2005
+CONTROL_SET_CON_NAME = 2004
+CONTROL_SET_CON_URL = 2005
 
-CONTROL_ADD_RANGE =             2008
-CONTROL_REMOVE_RANGE =          2009
+CONTROL_ADD_RANGE = 2008
+CONTROL_REMOVE_RANGE = 2009
 
-CONTROL_ADD_POST_REMOVE =       2010 # ADD A MESSAGE TO THE CLOSING EVENT ON A DIRECTOR SOCKET
-CONTROL_CLEAR_POST_REMOVE =     2011 # CLEAR ALL THE EVENTS..
+CONTROL_ADD_POST_REMOVE = 2010  # ADD A MESSAGE TO THE CLOSING EVENT ON A DIRECTOR SOCKET
+CONTROL_CLEAR_POST_REMOVE = 2011  # CLEAR ALL THE EVENTS..
 
 # State Server Transactions
-STATESERVER_OBJECT_GENERATE_WITH_REQUIRED =                2001
-STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER =          2003
-STATESERVER_OBJECT_UPDATE_FIELD =                          2004
-STATESERVER_OBJECT_UPDATE_FIELD_MULTIPLE =                 2005
-STATESERVER_OBJECT_DELETE_RAM =                            2007
-STATESERVER_OBJECT_SET_ZONE =                              2008
-STATESERVER_OBJECT_SET_ZONE_RESP =                         2008
-STATESERVER_OBJECT_CHANGE_ZONE =                           2009
-STATESERVER_OBJECT_NOTFOUND =                              2015
+STATESERVER_OBJECT_GENERATE_WITH_REQUIRED = 2001
+STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER = 2003
+STATESERVER_OBJECT_UPDATE_FIELD = 2004
+STATESERVER_OBJECT_UPDATE_FIELD_MULTIPLE = 2005
+STATESERVER_OBJECT_DELETE_RAM = 2007
+STATESERVER_OBJECT_SET_ZONE = 2008
+STATESERVER_OBJECT_SET_ZONE_RESP = 2008
+STATESERVER_OBJECT_CHANGE_ZONE = 2009
+STATESERVER_OBJECT_NOTFOUND = 2015
 
-STATESERVER_QUERY_OBJECT_ALL =                             2020
-STATESERVER_QUERY_ZONE_OBJECT_ALL =                        2021
-STATESERVER_OBJECT_LOCATE =                                2022
-STATESERVER_OBJECT_LOCATE_RESP =                           2023
-STATESERVER_OBJECT_QUERY_FIELD =                           2024 # See 2062
-STATESERVER_QUERY_OBJECT_ALL_RESP =                        2030
+STATESERVER_QUERY_OBJECT_ALL = 2020
+STATESERVER_QUERY_ZONE_OBJECT_ALL = 2021
+STATESERVER_OBJECT_LOCATE = 2022
+STATESERVER_OBJECT_LOCATE_RESP = 2023
+STATESERVER_OBJECT_QUERY_FIELD = 2024  # See 2062
+STATESERVER_QUERY_OBJECT_ALL_RESP = 2030
 
-STATESERVER_OBJECT_LEAVING_AI_INTEREST =                   2033 # This is the new name for 2033
+STATESERVER_OBJECT_LEAVING_AI_INTEREST = 2033  # This is the new name for 2033
 
-STATESERVER_ADD_AI_RECV =                                  2045
-STATESERVER_QUERY_ZONE_OBJECT_ALL_DONE =                   2046
-STATESERVER_OBJECT_CREATE_WITH_REQUIRED_CONTEXT =          2050
-STATESERVER_OBJECT_CREATE_WITH_REQUIR_OTHER_CONTEXT =      2051
-STATESERVER_OBJECT_CREATE_WITH_REQUIRED_CONTEXT_RESP =     2052
+STATESERVER_ADD_AI_RECV = 2045
+STATESERVER_QUERY_ZONE_OBJECT_ALL_DONE = 2046
+STATESERVER_OBJECT_CREATE_WITH_REQUIRED_CONTEXT = 2050
+STATESERVER_OBJECT_CREATE_WITH_REQUIR_OTHER_CONTEXT = 2051
+STATESERVER_OBJECT_CREATE_WITH_REQUIRED_CONTEXT_RESP = 2052
 STATESERVER_OBJECT_CREATE_WITH_REQUIR_OTHER_CONTEXT_RESP = 2053
-STATESERVER_OBJECT_DELETE_DISK =                           2060
-STATESERVER_SHARD_REST =                                   2061
-STATESERVER_OBJECT_QUERY_FIELD_RESP =                      2062 # See 2024
+STATESERVER_OBJECT_DELETE_DISK = 2060
+STATESERVER_SHARD_REST = 2061
+STATESERVER_OBJECT_QUERY_FIELD_RESP = 2062  # See 2024
 
-STATESERVER_OBJECT_ENTERZONE_WITH_REQUIRED_OTHER =         2066
-STATESERVER_OBJECT_ENTER_AI_RECV =                         2067
+STATESERVER_OBJECT_ENTERZONE_WITH_REQUIRED_OTHER = 2066
+STATESERVER_OBJECT_ENTER_AI_RECV = 2067
 
-STATESERVER_OBJECT_ENTER_OWNER_RECV =                      2068
-STATESERVER_OBJECT_CHANGE_OWNER_RECV =                     2069
-STATESERVER_OBJECT_SET_OWNER_RECV =                        2070
+STATESERVER_OBJECT_ENTER_OWNER_RECV = 2068
+STATESERVER_OBJECT_CHANGE_OWNER_RECV = 2069
+STATESERVER_OBJECT_SET_OWNER_RECV = 2070
 
-STATESERVER_OBJECT_QUERY_FIELDS =                          2080
-STATESERVER_OBJECT_QUERY_FIELDS_RESP =                     2081
-STATESERVER_OBJECT_QUERY_FIELDS_STRING =                   2082
-STATESERVER_OBJECT_QUERY_MANAGING_AI =                     2083 # Should not be received by python code (it's for roger's server) 
-STATESERVER_BOUNCE_MESSAGE =                               2086
+STATESERVER_OBJECT_QUERY_FIELDS = 2080
+STATESERVER_OBJECT_QUERY_FIELDS_RESP = 2081
+STATESERVER_OBJECT_QUERY_FIELDS_STRING = 2082
+STATESERVER_OBJECT_QUERY_MANAGING_AI = 2083  # Should not be received by python code (it's for roger's server)
+STATESERVER_BOUNCE_MESSAGE = 2086
 
-STATESERVER_QUERY_OBJECT_CHILDREN_LOCAL =                  2087
-STATESERVER_QUERY_OBJECT_CHILDREN_RESP =                   2087
-STATESERVER_QUERY_OBJECT_CHILDREN_LOCAL_DONE =             2089
+STATESERVER_QUERY_OBJECT_CHILDREN_LOCAL = 2087
+STATESERVER_QUERY_OBJECT_CHILDREN_RESP = 2087
+STATESERVER_QUERY_OBJECT_CHILDREN_LOCAL_DONE = 2089
 
 # Custom STATESERVER Message Types
-STATESERVER_OBJECT_ENTER_LOCATION_WITH_REQUIRED =          2090
-STATESERVER_OBJECT_ENTER_LOCATION_WITH_REQUIRED_OTHER =    2091
-STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED =                2092
-STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER =          2093
-STATESERVER_OBJECT_CHANGING_LOCATION =                     2097
-STATESERVER_OBJECT_LOCATION_ACK =                          2098
-STATESERVER_OBJECT_SET_AI =                                2099
-STATESERVER_OBJECT_SET_AI_RESP =                           2100
-STATESERVER_OBJECT_CHANGING_AI =                           2101
-STATESERVER_OBJECT_GET_ZONES_OBJECTS =                     2104
-STATESERVER_OBJECT_GET_ZONES_OBJECTS_RESP =                2105
-STATESERVER_OBJECT_GET_ZONES_OBJECTS_2 =                   2106
-STATESERVER_OBJECT_GET_ZONES_OBJECTS_2_RESP =              2107
-STATESERVER_OBJECT_CLEAR_WATCH =                           2108
+STATESERVER_OBJECT_ENTER_LOCATION_WITH_REQUIRED = 2090
+STATESERVER_OBJECT_ENTER_LOCATION_WITH_REQUIRED_OTHER = 2091
+STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED = 2092
+STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER = 2093
+STATESERVER_OBJECT_CHANGING_LOCATION = 2097
+STATESERVER_OBJECT_LOCATION_ACK = 2098
+STATESERVER_OBJECT_SET_AI = 2099
+STATESERVER_OBJECT_SET_AI_RESP = 2100
+STATESERVER_OBJECT_CHANGING_AI = 2101
+STATESERVER_OBJECT_GET_ZONES_OBJECTS = 2104
+STATESERVER_OBJECT_GET_ZONES_OBJECTS_RESP = 2105
+STATESERVER_OBJECT_GET_ZONES_OBJECTS_2 = 2106
+STATESERVER_OBJECT_GET_ZONES_OBJECTS_2_RESP = 2107
+STATESERVER_OBJECT_CLEAR_WATCH = 2108
 
-ACCOUNT_AVATAR_USAGE =  3005 # Avatar online or offline
-ACCOUNT_ACCOUNT_USAGE = 3006 # Account login or log off
+ACCOUNT_AVATAR_USAGE = 3005  # Avatar online or offline
+ACCOUNT_ACCOUNT_USAGE = 3006  # Account login or log off
 
-CHANNEL_PUPPET_ACTION = 4004 # Account and Avatar online or offline
+CHANNEL_PUPPET_ACTION = 4004  # Account and Avatar online or offline
 
-CLIENT_AGENT_OPEN_CHANNEL    = 3104
-CLIENT_AGENT_CLOSE_CHANNEL   = 3105
-CLIENT_AGENT_SET_INTEREST    = 3106
+CLIENT_AGENT_OPEN_CHANNEL = 3104
+CLIENT_AGENT_CLOSE_CHANNEL = 3105
+CLIENT_AGENT_SET_INTEREST = 3106
 CLIENT_AGENT_REMOVE_INTEREST = 3107
 
 # Custom CLIENT_AGENT Message Types
-CLIENT_AGENT_DISCONNECT      = 1000
-CLIENT_AGENT_FRIEND_ONLINE   = 1001
-CLIENT_AGENT_FRIEND_OFFLINE  = 1002
+CLIENT_AGENT_DISCONNECT = 1000
+CLIENT_AGENT_FRIEND_ONLINE = 1001
+CLIENT_AGENT_FRIEND_OFFLINE = 1002
 
 # direct-to-database-server transactions
 DBSERVER_CREATE_STORED_OBJECT = 1003
@@ -200,7 +200,7 @@ CLIENT_OBJECT_DISABLE_OWNER = 26
 CLIENT_OBJECT_DISABLE_OWNER_RESP = 26
 CLIENT_OBJECT_DELETE = 27
 CLIENT_OBJECT_DELETE_RESP = 27
-CLIENT_SET_ZONE = 29 # Same thing as CLIENT_SET_ZONE_CMU?
+CLIENT_SET_ZONE = 29  # Same thing as CLIENT_SET_ZONE_CMU?
 CLIENT_SET_ZONE_CMU = 29
 CLIENT_REMOVE_ZONE = 30
 CLIENT_SET_SHARD = 31
@@ -217,7 +217,7 @@ CLIENT_CHANGE_IP_ADDRESS_RESP = 45
 CLIENT_GET_STATE = 46
 CLIENT_GET_STATE_RESP = 47
 CLIENT_DONE_INTEREST_RESP = 48
-CLIENT_DONE_SET_ZONE_RESP = 48 # CMU Only?
+CLIENT_DONE_SET_ZONE_RESP = 48  # CMU Only?
 CLIENT_DELETE_AVATAR = 49
 CLIENT_DELETE_AVATAR_RESP = 5
 CLIENT_HEARTBEAT = 52
@@ -254,51 +254,51 @@ CLIENT_LOGIN_TOONTOWN = 125
 CLIENT_LOGIN_TOONTOWN_RESP = 126
 
 # Login 2 Types
-CLIENT_LOGIN_2_GREEN = 1       # Disney's GoReg subscription token, not used.
+CLIENT_LOGIN_2_GREEN = 1  # Disney's GoReg subscription token, not used.
 CLIENT_LOGIN_2_PLAY_TOKEN = 2  # VR Studio PlayToken.
-CLIENT_LOGIN_2_BLUE = 3        # The international GoReg token.
+CLIENT_LOGIN_2_BLUE = 3  # The international GoReg token.
 CLIENT_LOGIN_3_DISL_TOKEN = 4  # SSL encoded blob from DISL system.
 
 # Interal Disconnect Types
-CLIENT_DISCONNECT_ERROR = 1 # No Message. This is actually an error in the code that requested a disconnect.
-CLIENT_DISCONNECT_LOGOUT = 2 # Response to a Client logout message.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_AVATAR = 99 # The CLIENT_SET_AVATAR failed to pass a DOID or is malformed.
-CLIENT_DISCONNECT_COMM_CHANNEL_CONFLICT = 100 # A different communication channel was just established with the same identity as this one.   
-CLIENT_DISCONNECT_INVALID_SEC_TOKEN = 101 # A CLIENT_SET_SECURITY with a NULL token on the message.
-CLIENT_DISCONNECT_SEC_TOKEN_DEC_ERROR = 102 # The Server had a problem decrypting the token provide with a CLIENT_SET_SECURITY. (OpenSSL token)
-CLIENT_DISCONNECT_OPENSSL_TOKEN_PARSE_ERROR = 103 # There Was an Error Parsing the OpenSSl token for the required fields.
-CLIENT_DISCONNECT_ACCOUNT_NAME_LENGTH_ERROR = 104 # Name Length Is in error. The unique account identifier is shorter than 2 bytes or longer than 45 bytes.
-CLIENT_DISCONNECT_EXPIRED_PLAY_TOKEN = 105 # The Expiration time on this play token has passed.
-CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE = 106 # The field indicating what type of token we are processing is invalid.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_WISHNAME = 108 # Error decoding CLIENT_SET_WISHNAME. Malformed request.
-CLIENT_DISCONNECT_MALFORMED_AVATAR_CREATIVE_MESSAGE = 109 # Error decoding CLIENT_SET_WISHNAME_CLEAR or CLIENT_CREATE_AVATAR. Malformed request.
-CLIENT_DISCONNECT_DNA_RANGE_ERROR = 110 # The DNA provided has failed the basic range tests. See Client Agent log for details.
-CLIENT_DISCONNECT_DNA_NAME_CONVERT_ERROR = 111 # The DNA name converter had a problem creating a default a name for this DNA string.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_DELETE_AVATAR = 113 # Error Decoding the CLIENT_DELETE_AVATAR message. Malformed request.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_SHARD  = 115 # The client request CLIENT_SET_SHARD seems to be malformed.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_ZONE = 116 # The CLIENT_SET_ZONE message seems to be malformed.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_OBJECT_UPDATE_FIELD = 117 # The CLIENT_OBJECT_UPDATE_FIELD seems to be malformed.
-CLIENT_DISCONNECT_INVALID_OBJECT_UPDATE_FIELD = 118 # Got a CLIENT_OBJECT_UPDATE_FIELD for a field that this client is not allowed to update.
-CLIENT_DISCONNECT_INVALID_OBJECT_UPDATE_FIELD_2 = 119 # Got a CLIENT_OBJECT_UPDATE_FIELD for a field that this client is not allowed to update.
-CLIENT_DISCONNECT_RESTRICTED_CHAT_DENIAL = 120 # This client tried to send a chat message but does not have chat permissions set.
-CLIENT_DISCONNECT_LOGIN2_SSL_DECRYPT_ERROR = 122 # Error Decrypting OpenSSl token in CLIENT_LOGIN_2.
-CLIENT_DISCONNECT_BAD_LOGIN_TYPE = 123 # CLIENT_LOGIN. The client agent is in a mode that disallows this type of login.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_LOGIN = 124 # CLIENT_LOGIN failed to parse this message. Malformed.
-CLIENT_DISCONNECT_INVALID_DOWNLOAD_HASH = 125 # Error validating download hash or invalid download hash.
-CLIENT_DISCONNECT_PERMISSIONS_ERROR = 126 # Got Admin Command from non admin. Admin bit not set at login or we had an error decoding a CLIENT_GET_AVATAR_DETAILS.
-CLIENT_DISCONNECT_CLIENT_AGENT_CLOSED = 151 # A CLIENT_AGENT_CLOSE_CONECTION message was just received by the client agent. Today the only server that uses this comment is the client agent web page.
-CLIENT_DISCONNECT_SHARD_CLOSED = 153 # Your avatar has been removed by an AI request. This is usually issued when a district goes threw a hard shutdown. But technically could be caused by any trusted server issuing the a state server delete for a active avatar.
-CLIENT_DISCONNECT_FSM_ERROR = 200 # Internal Error in the client’s state machine. Contact Develops for correction.
-CLIENT_DISCONNECT_LOGIN2_DATABASE_ERROR = 201 # A Fatal Error Has Happened on The Database part of the LOGIN2 client transaction.
-CLIENT_DISCONNECT_LOGIN2_INVALID_TOKEN_TYPE = 204 # The Token type provided to the CLIENT_LOGIN_2 message is invalided.
-CLIENT_DISCONNECT_BAD_DCHASH = 205 # The dc hash provided does not match the servers.
-CLIENT_DISCONNECT_INVALID_GREEN_TOKEN = 207 # The green token is invalid. Fails basic tests.
-CLIENT_DISCONNECT_NOPLAY_GREEN_TOKEN = 208 # The green indicates you are not allowed to play.
-CLIENT_DISCONNECT_GREEN_TOKEN_INVALID_SWID = 210 # The SWID in the green does not pass basic validation. 
-CLIENT_DISCONNECT_CLIENT_LOGIN_BAD_VERSION = 211 # Invalid Version code in the CLIENT_LOGIN message.
-CLIENT_DISCONNECT_CLIENT_LOGIN_BAD_DCHASH = 212 # Invalid DC hash in the CLIENT_LOGIN message.
-CLIENT_DISCONNECT_FSM_ERROR_2 = 220 # Internal Error in the client’s state machine.  Contact Develops for correction.
-CLIENT_DISCONNECT_MALFORMED_CLIENT_LOGIN_2 = 221 # Error decoding CLIENT_LOGIN_2 malformed message.
+CLIENT_DISCONNECT_ERROR = 1  # No Message. This is actually an error in the code that requested a disconnect.
+CLIENT_DISCONNECT_LOGOUT = 2  # Response to a Client logout message.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_AVATAR = 99  # The CLIENT_SET_AVATAR failed to pass a DOID or is malformed.
+CLIENT_DISCONNECT_COMM_CHANNEL_CONFLICT = 100  # A different communication channel was just established with the same identity as this one.
+CLIENT_DISCONNECT_INVALID_SEC_TOKEN = 101  # A CLIENT_SET_SECURITY with a NULL token on the message.
+CLIENT_DISCONNECT_SEC_TOKEN_DEC_ERROR = 102  # The Server had a problem decrypting the token provide with a CLIENT_SET_SECURITY. (OpenSSL token)
+CLIENT_DISCONNECT_OPENSSL_TOKEN_PARSE_ERROR = 103  # There Was an Error Parsing the OpenSSl token for the required fields.
+CLIENT_DISCONNECT_ACCOUNT_NAME_LENGTH_ERROR = 104  # Name Length Is in error. The unique account identifier is shorter than 2 bytes or longer than 45 bytes.
+CLIENT_DISCONNECT_EXPIRED_PLAY_TOKEN = 105  # The Expiration time on this play token has passed.
+CLIENT_DISCONNECT_INVALID_PLAY_TOKEN_TYPE = 106  # The field indicating what type of token we are processing is invalid.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_WISHNAME = 108  # Error decoding CLIENT_SET_WISHNAME. Malformed request.
+CLIENT_DISCONNECT_MALFORMED_AVATAR_CREATIVE_MESSAGE = 109  # Error decoding CLIENT_SET_WISHNAME_CLEAR or CLIENT_CREATE_AVATAR. Malformed request.
+CLIENT_DISCONNECT_DNA_RANGE_ERROR = 110  # The DNA provided has failed the basic range tests. See Client Agent log for details.
+CLIENT_DISCONNECT_DNA_NAME_CONVERT_ERROR = 111  # The DNA name converter had a problem creating a default a name for this DNA string.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_DELETE_AVATAR = 113  # Error Decoding the CLIENT_DELETE_AVATAR message. Malformed request.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_SHARD = 115  # The client request CLIENT_SET_SHARD seems to be malformed.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_SET_ZONE = 116  # The CLIENT_SET_ZONE message seems to be malformed.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_OBJECT_UPDATE_FIELD = 117  # The CLIENT_OBJECT_UPDATE_FIELD seems to be malformed.
+CLIENT_DISCONNECT_INVALID_OBJECT_UPDATE_FIELD = 118  # Got a CLIENT_OBJECT_UPDATE_FIELD for a field that this client is not allowed to update.
+CLIENT_DISCONNECT_INVALID_OBJECT_UPDATE_FIELD_2 = 119  # Got a CLIENT_OBJECT_UPDATE_FIELD for a field that this client is not allowed to update.
+CLIENT_DISCONNECT_RESTRICTED_CHAT_DENIAL = 120  # This client tried to send a chat message but does not have chat permissions set.
+CLIENT_DISCONNECT_LOGIN2_SSL_DECRYPT_ERROR = 122  # Error Decrypting OpenSSl token in CLIENT_LOGIN_2.
+CLIENT_DISCONNECT_BAD_LOGIN_TYPE = 123  # CLIENT_LOGIN. The client agent is in a mode that disallows this type of login.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_LOGIN = 124  # CLIENT_LOGIN failed to parse this message. Malformed.
+CLIENT_DISCONNECT_INVALID_DOWNLOAD_HASH = 125  # Error validating download hash or invalid download hash.
+CLIENT_DISCONNECT_PERMISSIONS_ERROR = 126  # Got Admin Command from non admin. Admin bit not set at login or we had an error decoding a CLIENT_GET_AVATAR_DETAILS.
+CLIENT_DISCONNECT_CLIENT_AGENT_CLOSED = 151  # A CLIENT_AGENT_CLOSE_CONECTION message was just received by the client agent. Today the only server that uses this comment is the client agent web page.
+CLIENT_DISCONNECT_SHARD_CLOSED = 153  # Your avatar has been removed by an AI request. This is usually issued when a district goes threw a hard shutdown. But technically could be caused by any trusted server issuing the a state server delete for a active avatar.
+CLIENT_DISCONNECT_FSM_ERROR = 200  # Internal Error in the client’s state machine. Contact Develops for correction.
+CLIENT_DISCONNECT_LOGIN2_DATABASE_ERROR = 201  # A Fatal Error Has Happened on The Database part of the LOGIN2 client transaction.
+CLIENT_DISCONNECT_LOGIN2_INVALID_TOKEN_TYPE = 204  # The Token type provided to the CLIENT_LOGIN_2 message is invalided.
+CLIENT_DISCONNECT_BAD_DCHASH = 205  # The dc hash provided does not match the servers.
+CLIENT_DISCONNECT_INVALID_GREEN_TOKEN = 207  # The green token is invalid. Fails basic tests.
+CLIENT_DISCONNECT_NOPLAY_GREEN_TOKEN = 208  # The green indicates you are not allowed to play.
+CLIENT_DISCONNECT_GREEN_TOKEN_INVALID_SWID = 210  # The SWID in the green does not pass basic validation.
+CLIENT_DISCONNECT_CLIENT_LOGIN_BAD_VERSION = 211  # Invalid Version code in the CLIENT_LOGIN message.
+CLIENT_DISCONNECT_CLIENT_LOGIN_BAD_DCHASH = 212  # Invalid DC hash in the CLIENT_LOGIN message.
+CLIENT_DISCONNECT_FSM_ERROR_2 = 220  # Internal Error in the client’s state machine.  Contact Develops for correction.
+CLIENT_DISCONNECT_MALFORMED_CLIENT_LOGIN_2 = 221  # Error decoding CLIENT_LOGIN_2 malformed message.
 
 # Custom Internal Disconnect Types
 CLIENT_DISCONNECT_INVALID_MSGTYPE = 2227

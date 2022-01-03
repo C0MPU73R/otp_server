@@ -14,42 +14,45 @@ from otp_server.realtime import io
 from otp_server.realtime import types
 from otp_server.realtime.notifier import notify
 
+
 class MessageError(RuntimeError):
     """
     An message director specific runtime error
     """
+
 
 class Participant(io.NetworkHandler):
     notify = notify.new_category('Participant')
 
     def __init__(self, *args, **kwargs):
         io.NetworkHandler.__init__(self, *args, **kwargs)
-        
+
         self.connectionName = ""
         self.connectionURL = ""
         self.connectionHosts = []
 
     def handle_datagram(self, di):
         channelCount = di.get_uint8()
-            
+
         channels = []
         for _ in range(channelCount):
             channel = di.get_uint64()
             channels.append(channel)
-        
+
         # If we're handling a control message. We pass it on to that function.
         if channelCount == 1 and channel == types.CONTROL_MESSAGE:
             self.handle_control_message(di)
             return
-            
+
         sender = di.get_uint64()
         message_type = di.get_uint16()
-        
-        self.network.message_interface.append_handle(channel, sender, message_type, io.NetworkDatagram(Datagram(di.get_remaining_bytes())))
+
+        self.network.message_interface.append_handle(channel, sender, message_type,
+                                                     io.NetworkDatagram(Datagram(di.get_remaining_bytes())))
 
     def handle_control_message(self, di):
         message_type = di.get_uint16()
-        
+
         # Both of these DON'T include the sender. So we have a special if statement
         # for them in particular
         if message_type == types.CONTROL_SET_CON_NAME:
@@ -58,7 +61,7 @@ class Participant(io.NetworkHandler):
         elif message_type == types.CONTROL_SET_CON_URL:
             self.connectionURL = di.getString()
             return
-            
+
         sender = di.get_uint64()
 
         if message_type == types.CONTROL_SET_CHANNEL:
@@ -73,7 +76,8 @@ class Participant(io.NetworkHandler):
         elif message_type == types.CONTROL_REMOVE_RANGE:
             pass
         elif message_type == types.CONTROL_ADD_POST_REMOVE:
-            self.network.message_interface.append_post_handle(sender, io.NetworkDatagram(Datagram(di.get_remaining_bytes())))
+            self.network.message_interface.append_post_handle(sender,
+                                                              io.NetworkDatagram(Datagram(di.get_remaining_bytes())))
         elif message_type == types.CONTROL_CLEAR_POST_REMOVE:
             self.network.message_interface.clear_post_handles(sender)
         else:
@@ -91,6 +95,7 @@ class Participant(io.NetworkHandler):
         self.connectionURL = ""
         self.connectionHosts = []
         io.NetworkHandler.shutdown(self)
+
 
 class ParticipantInterface(object):
     notify = notify.new_category('ParticipantInterface')
@@ -122,6 +127,7 @@ class ParticipantInterface(object):
 
     def get_participant(self, channel):
         return self._participants.get(channel)
+
 
 class MessageHandle(object):
 
@@ -159,6 +165,7 @@ class MessageHandle(object):
         self._datagram = None
         self._timestamp = None
 
+
 class PostMessageHandle(object):
 
     def __init__(self, channel, datagram):
@@ -176,6 +183,7 @@ class PostMessageHandle(object):
     def destroy(self):
         self._channel = None
         self._datagram = None
+
 
 class MessageInterface(object):
     notify = notify.new_category('MessageInterface')
@@ -200,9 +208,11 @@ class MessageInterface(object):
 
     def append_handle(self, channel, sender, message_type, datagram):
         if not datagram.get_length():
-            self.notify.warning('Failed to append messenger handle from sender: %d to channel: %d, invalid datagram!' % (sender, channel))
-            #return
-        
+            self.notify.warning(
+                'Failed to append messenger handle from sender: %d to channel: %d, invalid datagram!' % (
+                sender, channel))
+            # return
+
         message_handle = MessageHandle(channel, sender, message_type, datagram, self.get_timestamp())
 
         self._messages.append(message_handle)
@@ -270,7 +280,8 @@ class MessageInterface(object):
             participant = self._network.interface.get_participant(message_handle.sender)
 
             if not participant:
-                self.notify.warning("Tried to flush messages for unknown participant with sender: %s" % (str(message_handle.sender)))
+                self.notify.warning(
+                    "Tried to flush messages for unknown participant with sender: %s" % (str(message_handle.sender)))
                 continue
 
             datagram = io.NetworkDatagram()
@@ -278,7 +289,8 @@ class MessageInterface(object):
 
             other_datagram = message_handle.datagram
             datagram.append_data(other_datagram.get_message())
-            print("Sending message %d, %d, %d!" % (message_handle.channel, message_handle.sender, message_handle.message_type))
+            print("Sending message %d, %d, %d!" % (
+            message_handle.channel, message_handle.sender, message_handle.message_type))
             participant.handle_send_datagram(datagram)
 
             # destroy the datagram and message handle objects since they are
@@ -329,6 +341,7 @@ class MessageInterface(object):
         if self.__flush_task:
             task_mgr.remove(self.__flush_task)
             self.__flush_task = None
+
 
 class MessageDirector(io.NetworkListener):
     notify = notify.new_category('MessageDirector')
